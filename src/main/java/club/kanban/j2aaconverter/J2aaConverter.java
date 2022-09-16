@@ -74,7 +74,7 @@ public class J2aaConverter {
 
                 row = boardIssue.getKey()
                         + "," + (SHOW_ISSUE_LINK ? boardIssue.getLink() : "")
-                        + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "\'") + "\"" : "");
+                        + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "'") + "\"" : "");
 
                 for (_BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
