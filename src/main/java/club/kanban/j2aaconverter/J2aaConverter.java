@@ -14,9 +14,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-interface Logger {
-    void log(String msg, Object... objects);
-}
+//interface Logger {
+//    void log(String msg, Object... objects);
+//}
 
 public class J2aaConverter {
     final static boolean SHOW_ISSUE_LINK = true;
