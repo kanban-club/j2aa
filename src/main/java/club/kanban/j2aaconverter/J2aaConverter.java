@@ -43,8 +43,12 @@ public class J2aaConverter {
         this.boardConfig = board.getBoardConfig();
         boardIssues = new ArrayList<>(issues.size());
         for (_Issue issue : issues) {
-            BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
-            boardIssues.add(boardIssue);
+            try {
+                BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
+                boardIssues.add(boardIssue);
+            } catch (JiraException e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
