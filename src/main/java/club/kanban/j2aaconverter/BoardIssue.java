@@ -77,8 +77,10 @@ public class BoardIssue {
         for (_Change change : statusChanges) {
             if (statuses.size() > 0) {
                 Status prevStatus = statuses.get(statuses.size() - 1);
-                if (prevStatus.getStatusId() == change.getFrom()) prevStatus.setDateOut(change.getDate());
-                else throw new JiraException("Inconsistent statuses");
+                if (prevStatus.getStatusId() == change.getFrom())
+                    prevStatus.setDateOut(change.getDate());
+                else
+                    throw new JiraException("Inconsistent statuses");
             }
 
             Status newStatus = new Status(change.getDate(), change.getTo(), change.getToString());

@@ -14,9 +14,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-interface Logger {
-    void log(String msg, Object... objects);
-}
+//interface Logger {
+//    void log(String msg, Object... objects);
+//}
 
 public class J2aaConverter {
     final static boolean SHOW_ISSUE_LINK = true;
@@ -43,8 +43,12 @@ public class J2aaConverter {
         this.boardConfig = board.getBoardConfig();
         boardIssues = new ArrayList<>(issues.size());
         for (_Issue issue : issues) {
-            BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
-            boardIssues.add(boardIssue);
+            try {
+                BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
+                boardIssues.add(boardIssue);
+            } catch (JiraException e) {
+                System.out.println(String.format("%s: %s", issue.getKey(), e.getMessage()));
+            }
         }
     }
 
@@ -70,7 +74,7 @@ public class J2aaConverter {
 
                 row = boardIssue.getKey()
                         + "," + (SHOW_ISSUE_LINK ? boardIssue.getLink() : "")
-                        + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "\'") + "\"" : "");
+                        + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "'") + "\"" : "");
 
                 for (_BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
