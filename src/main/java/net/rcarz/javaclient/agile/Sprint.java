@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -87,9 +87,9 @@ public class Sprint extends AgileResource {
         super.deserialize(json);
         state = Field.getString(json.get("state"));
         originBoardId = getLong(json.get("originBoardId"));
-        startDate = _Field_v0_6.getDateTime(json.get("startDate"));
-        endDate = _Field_v0_6.getDateTime(json.get("endDate"));
-        completeDate = _Field_v0_6.getDateTime(json.get("completeDate"));
+        startDate = Field_v0_6.getDateTime(json.get("startDate"));
+        endDate = Field_v0_6.getDateTime(json.get("endDate"));
+        completeDate = Field_v0_6.getDateTime(json.get("completeDate"));
     }
 
     public String getState() {

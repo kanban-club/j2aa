@@ -17,18 +17,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
+import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
 /**
- * Represents an Agile Priority.
+ * Represents an Agile Resolution.
  *
  * @author pldupont
  */
-public class Priority extends AgileResource {
+public class Resolution extends AgileResource {
+
+    private String description;
 
     /**
      * Creates a new Agile resource.
@@ -36,7 +39,24 @@ public class Priority extends AgileResource {
      * @param restclient REST client instance
      * @param json       JSON payload
      */
-    public Priority(RestClient restclient, JSONObject json) throws JiraException {
+    public Resolution(RestClient restclient, JSONObject json) throws JiraException {
         super(restclient, json);
+    }
+
+    /**
+     * Deserialize the json to extract standard attributes and keep a reference of
+     * other attributes.
+     *
+     * @param json The JSON object to read.
+     */
+    @Override
+    protected void deserialize(JSONObject json) throws JiraException {
+        super.deserialize(json);
+
+        this.description = Field.getString(json.get("description"));
+    }
+
+    public String getDescription() {
+        return description;
     }
 }

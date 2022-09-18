@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -87,7 +87,7 @@ public class Epic extends AgileResource {
      * @param json The JSON object to read.
      */
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
 
         this.key = Field.getString(json.get("key"));

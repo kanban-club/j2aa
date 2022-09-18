@@ -17,27 +17,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
-import java.util.Date;
-
 /**
- * Represents an Agile Comment.
+ * Represents an Agile Project.
  *
  * @author pldupont
  */
-public class Comment extends AgileResource {
+public class Project extends AgileResource {
 
-    private User author;
-    private String body;
-    private User updateAuthor;
-    private Date created;
-    private Date updated;
+    private String key;
 
     /**
      * Creates a new Agile resource.
@@ -45,7 +39,7 @@ public class Comment extends AgileResource {
      * @param restclient REST client instance
      * @param json       JSON payload
      */
-    public Comment(RestClient restclient, JSONObject json) throws JiraException {
+    public Project(RestClient restclient, JSONObject json) throws JiraException {
         super(restclient, json);
     }
 
@@ -56,38 +50,13 @@ public class Comment extends AgileResource {
      * @param json The JSON object to read.
      */
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
 
-        this.author = getSubResource(User.class, json, "author");
-        this.body = Field.getString(json.get("body"));
-        this.updateAuthor = getSubResource(User.class, json, "updateAuthor");
-        this.created = _Field_v0_6.getDateTime(json.get("created"));
-        this.updated = _Field_v0_6.getDateTime(json.get("updated"));
+        this.key = Field.getString(json.get("key"));
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s{id=%s, body='%s'}", getClass().getSimpleName(), getId(), getBody());
-    }
-
-    public User getAuthor() {
-        return author;
-    }
-
-    public String getBody() {
-        return body;
-    }
-
-    public User getUpdateAuthor() {
-        return updateAuthor;
-    }
-
-    public Date getCreated() {
-        return created;
-    }
-
-    public Date getUpdated() {
-        return updated;
+    public String getKey() {
+        return key;
     }
 }

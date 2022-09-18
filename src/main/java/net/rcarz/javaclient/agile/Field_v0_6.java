@@ -1,4 +1,4 @@
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
@@ -6,7 +6,7 @@ import java.util.Date;
 
 import static net.rcarz.jiraclient.Field.DATETIME_FORMAT;
 
-public class _Field_v0_6 {
+public class Field_v0_6 {
     public static Date getDateTime(Object d) {
         Date result = null;
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -55,14 +55,14 @@ public class TimeTracking extends AgileResource {
      * @param json The JSON object to read.
      */
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
         this.originalEstimate = Field.getString(json.get("originalEstimate"));
         this.remainingEstimate = Field.getString(json.get("remainingEstimate"));
         this.timeSpent = Field.getString(json.get("timeSpent"));
-        this.originalEstimateSeconds = _Field_v0_6.getLong(json.get("originalEstimateSeconds"));
-        this.remainingEstimateSeconds = _Field_v0_6.getLong(json.get("remainingEstimateSeconds"));
-        this.timeSpentSeconds = _Field_v0_6.getLong(json.get("timeSpentSeconds"));
+        this.originalEstimateSeconds = Field_v0_6.getLong(json.get("originalEstimateSeconds"));
+        this.remainingEstimateSeconds = Field_v0_6.getLong(json.get("remainingEstimateSeconds"));
+        this.timeSpentSeconds = Field_v0_6.getLong(json.get("timeSpentSeconds"));
     }
 
     @Override

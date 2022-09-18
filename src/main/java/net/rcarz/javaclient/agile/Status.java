@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -25,16 +25,13 @@ import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
 /**
- * Represents an Agile User.
+ * Represents an Agile Status.
  *
  * @author pldupont
  */
-public class User extends AgileResource {
+public class Status extends AgileResource {
 
-    private String emailAddress;
-    private String displayName;
-    private boolean active;
-    private String timeZone;
+    private String description;
 
     /**
      * Creates a new Agile resource.
@@ -42,7 +39,7 @@ public class User extends AgileResource {
      * @param restclient REST client instance
      * @param json       JSON payload
      */
-    public User(RestClient restclient, JSONObject json) throws JiraException {
+    public Status(RestClient restclient, JSONObject json) throws JiraException {
         super(restclient, json);
     }
 
@@ -53,32 +50,13 @@ public class User extends AgileResource {
      * @param json The JSON object to read.
      */
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
-        this.emailAddress = Field.getString(json.get("emailAddress"));
-        this.displayName = Field.getString(json.get("displayName"));
-        this.active = Field.getBoolean(json.get("active"));
-        this.timeZone = Field.getString(json.get("timeZone"));
+
+        this.description = Field.getString(json.get("description"));
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s{name='%s', Display Name='%s'}", getClass().getSimpleName(), getName(), getDisplayName());
-    }
-
-    public String getEmailAddress() {
-        return emailAddress;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public String getTimeZone() {
-        return timeZone;
+    public String getDescription() {
+        return description;
     }
 }

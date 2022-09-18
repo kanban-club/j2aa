@@ -22,11 +22,11 @@ public class J2aaConverter {
     final static boolean SHOW_ISSUE_LINK = true;
     final static boolean SHOW_ISSUE_NAME = false;
 
-    private _BoardConfig boardConfig;
+    private BoardConfig boardConfig;
     @Getter
     private List<BoardIssue> boardIssues;
 
-    public void importFromJira(_Board board, String jqlSubFilter, _ProgressMonitor progressMonitor) throws JiraException {
+    public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
         // Get all Issues for the board
 
         List<String> fields;
@@ -35,14 +35,14 @@ public class J2aaConverter {
         else
             fields = Arrays.asList("key", "issuetype", "labels", "status", "created", "priority", "summary");
 
-        List<_Issue> issues = board.getAllIssuesForBoard(jqlSubFilter, fields, new HashMap<>() {{
+        List<Issue> issues = board.getAllIssuesForBoard(jqlSubFilter, fields, new HashMap<>() {{
             put("expand", "changelog");
         }}, progressMonitor);
 
         // Map issue's changelog to board columns
         this.boardConfig = board.getBoardConfig();
         boardIssues = new ArrayList<>(issues.size());
-        for (_Issue issue : issues) {
+        for (Issue issue : issues) {
             try {
                 BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
                 boardIssues.add(boardIssue);
@@ -61,7 +61,7 @@ public class J2aaConverter {
         try {
             // запись всего заголовка
             String header = "ID,Link,Name";
-            for (_BoardColumn boardColumn : boardConfig.getBoardColumns())
+            for (BoardColumn boardColumn : boardConfig.getBoardColumns())
                 header = header.concat("," + boardColumn.getName());
             header += ",Project,Type,Blocked Days,Labels,Priority";
 
@@ -76,7 +76,7 @@ public class J2aaConverter {
                         + "," + (SHOW_ISSUE_LINK ? boardIssue.getLink() : "")
                         + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "'") + "\"" : "");
 
-                for (_BoardColumn boardColumn : boardConfig.getBoardColumns()) {
+                for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
                     row = row.concat("," + (date != null ? df.format(date) : ""));
                 }

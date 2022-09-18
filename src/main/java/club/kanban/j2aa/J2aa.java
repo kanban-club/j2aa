@@ -1,7 +1,7 @@
 package club.kanban.j2aa;
 
 import club.kanban.j2aaconverter.J2aaConverter;
-import club.kanban.jirarestclient._Board;
+import club.kanban.jirarestclient.Board;
 import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.*;
@@ -388,7 +388,7 @@ public class J2aa {
             startButton.update(startButton.getGraphics());
 
             JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(getUserName(), getPassword()));
-            _Board board = _Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
+            Board board = Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
             fLog.append(String.format("Установлено соединение с доской: %s\n", board.getName()));
             fLog.update(fLog.getGraphics());
 

@@ -32,7 +32,7 @@ public class BoardIssue {
     @Getter
     private String priority;
 
-    public static BoardIssue createFromIssue(_Issue issue, _BoardConfig boardConfig) throws JiraException {
+    public static BoardIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         BoardIssue boardIssue = new BoardIssue();
         boardIssue.key = issue.getKey();
 
@@ -60,10 +60,10 @@ public class BoardIssue {
         return ChronoUnit.DAYS.between(localStart, localEnd);
     }
 
-    private void initTransitionsLog(_Issue issue, _BoardConfig boardConfig) throws JiraException {
+    private void initTransitionsLog(Issue issue, BoardConfig boardConfig) throws JiraException {
         // 1.Отсортировать переходы статусов по времени
-        List<_Change> statusChanges = issue.getStatusChanges();
-        statusChanges.sort(Comparator.comparing(_Change::getDate));
+        List<Change> statusChanges = issue.getStatusChanges();
+        statusChanges.sort(Comparator.comparing(Change::getDate));
 
         // 2.Создать цепочку статусов по истории переходов
         List<Status> statuses = new ArrayList<>(20);
@@ -74,7 +74,7 @@ public class BoardIssue {
         else statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
 
         // Достраиваем цепочку статусов
-        for (_Change change : statusChanges) {
+        for (Change change : statusChanges) {
             if (statuses.size() > 0) {
                 Status prevStatus = statuses.get(statuses.size() - 1);
                 if (prevStatus.getStatusId() == change.getFrom())
@@ -92,8 +92,8 @@ public class BoardIssue {
         Map<Long, Long> status2Column = new HashMap<>(20);
 
         // Инициализирум рабочие массивы и делаем маппинг статусов в таблицы
-        for (_BoardColumn boardColumn : boardConfig.getBoardColumns()) {
-            for (_BoardColumnStatus boardColumnStatus : boardColumn.getStatuses())
+        for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
+            for (BoardColumnStatus boardColumnStatus : boardColumn.getStatuses())
                 status2Column.put(boardColumnStatus.getId(), boardColumn.getId());
             columnLTs[(int) boardColumn.getId()] = null;
         }
@@ -154,13 +154,13 @@ public class BoardIssue {
         }
     }
 
-    private void initBlockedDays(_Issue issue) {
-        List<_Change> flaggedChanges = issue.getFlaggedChanges();
-        flaggedChanges.sort(Comparator.comparing(_Change::getDate));
+    private void initBlockedDays(Issue issue) {
+        List<Change> flaggedChanges = issue.getFlaggedChanges();
+        flaggedChanges.sort(Comparator.comparing(Change::getDate));
 
         blockedDays = (long) 0;
 
-        List<_Change> statusChanges = issue.getStatusChanges();
+        List<Change> statusChanges = issue.getStatusChanges();
 
         if (statusChanges != null && statusChanges.size() > 0) {
             Date startWFDate = statusChanges.get(0).getDate();
@@ -168,7 +168,7 @@ public class BoardIssue {
 
             Date startOfBlockedTimePeriod = null;
 
-            for (_Change fc : flaggedChanges) {
+            for (Change fc : flaggedChanges) {
                 if (fc.getDate().compareTo(startWFDate) >= 0 && fc.getDate().compareTo(endWFDate) <= 0) {
                     if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
                         if (startOfBlockedTimePeriod == null) startOfBlockedTimePeriod = fc.getDate();

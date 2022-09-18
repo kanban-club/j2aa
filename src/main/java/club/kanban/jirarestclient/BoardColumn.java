@@ -2,19 +2,20 @@ package club.kanban.jirarestclient;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.rcarz.javaclient.agile.AgileResource;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
 import java.util.List;
 
-public class _BoardColumn extends AgileResource {
+public class BoardColumn extends AgileResource {
 
     @Getter
     @Setter
     private long id;
     @Getter
-    private List<_BoardColumnStatus> statuses;
+    private List<BoardColumnStatus> statuses;
 
     /**
      * Creates a new Agile resource.
@@ -23,13 +24,13 @@ public class _BoardColumn extends AgileResource {
      * @param json JSON payload
      * @throws JiraException when the retrieval fails
      */
-    _BoardColumn(RestClient restclient, JSONObject json) throws JiraException {
+    public BoardColumn(RestClient restclient, JSONObject json) throws JiraException {
         super(restclient, json);
     }
 
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
-        statuses = getResourceArray(_BoardColumnStatus.class, json, getRestclient(), "statuses");
+        statuses = getResourceArray(BoardColumnStatus.class, json, getRestclient(), "statuses");
     }
 }

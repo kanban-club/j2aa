@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package net.rcarz.javaclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -59,16 +59,16 @@ public class Worklog extends AgileResource {
      * @param json The JSON object to read.
      */
     @Override
-    void deserialize(JSONObject json) throws JiraException {
+    protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
         this.author = getSubResource(User.class, json, "author");
         this.comment = Field.getString(json.get("comment"));
-        this.created = _Field_v0_6.getDateTime(json.get("created"));
-        this.updated = _Field_v0_6.getDateTime(json.get("updated"));
+        this.created = Field_v0_6.getDateTime(json.get("created"));
+        this.updated = Field_v0_6.getDateTime(json.get("updated"));
         this.updateAuthor = getSubResource(User.class, json, "updateAuthor");
-        this.started = _Field_v0_6.getDateTime(json.get("started"));
+        this.started = Field_v0_6.getDateTime(json.get("started"));
         this.timeSpent = Field.getString(json.get("timeSpent"));
-        this.timeSpentSeconds = _Field_v0_6.getLong(json.get("timeSpentSeconds"));
+        this.timeSpentSeconds = Field_v0_6.getLong(json.get("timeSpentSeconds"));
     }
 
     @Override
