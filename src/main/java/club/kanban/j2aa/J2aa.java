@@ -347,7 +347,7 @@ public class J2aa {
             String query = url.getQuery();
             if (query != null && !query.trim().isEmpty()) {
 //                String[] tokens = query.split("[\\&]");
-              String[] tokens = query.split("[&]");
+                String[] tokens = query.split("[&]");
                 for (String token : tokens) {
                     int i = token.indexOf("=");
                     if (i > 0 && token.substring(0, i).trim().equalsIgnoreCase("rapidView")) {
@@ -410,19 +410,20 @@ public class J2aa {
                 fLog.append(String.format("\nДанные выгружены в файл:\n%s\n", outputFile.getAbsoluteFile()));
             } else fLog.append("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
         } catch (JiraException e) {
-            System.out.println(e.getMessage());
-
             Exception ex = (Exception) e.getCause();
             if (ex instanceof SSLPeerUnverifiedException)
                 fLog.append(String.format("SSL peer unverified: %s\n", ex.getMessage()));
-            if (ex instanceof UnknownHostException)
+            else if (ex instanceof UnknownHostException)
                 fLog.append(String.format("Не удается соединиться с сервером %s\n", ex.getMessage()));
-            if (ex instanceof RestException)
+            else if (ex instanceof RestException) {
                 if (((RestException) ex).getHttpStatusCode() == 401) {
                     fLog.append(ex.getMessage().substring(0, 56));
                 } else {
                     fLog.append(ex.getMessage());
                 }
+            } else
+                fLog.append(e.getMessage());
+
         } catch (IOException e) {
             fLog.append(e.getMessage());
         } finally {
