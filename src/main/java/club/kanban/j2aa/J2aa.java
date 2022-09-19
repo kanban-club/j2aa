@@ -103,7 +103,7 @@ public class J2aa {
         appFrame.getRootPane().setDefaultButton(startButton);
 
         startButton.addActionListener(actionEvent -> {
-            Runnable r = this::run;
+            Runnable r = this::doConversion;
             r.run();
         });
 
@@ -323,7 +323,7 @@ public class J2aa {
         data.setPassword(String.valueOf(fPassword.getPassword()));
     }
 
-    private void run() {
+    private void doConversion() {
         getData(this);
 
         List<String> missedparams = new ArrayList<>(10);
