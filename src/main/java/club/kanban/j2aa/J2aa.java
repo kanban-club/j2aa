@@ -375,8 +375,7 @@ public class J2aa {
         startButton.setEnabled(false);
         startButton.update(startButton.getGraphics());
 
-        fLog.setText("");
-        fLog.setText("");
+        fLog.setText(null);
 
         fLog.append(String.format("Подключаемся к серверу: %s\n", jiraUrl));
         fLog.append(String.format("Пользователь %s\n", getUserName()));
