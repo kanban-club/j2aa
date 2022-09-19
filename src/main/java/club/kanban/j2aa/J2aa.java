@@ -141,6 +141,7 @@ public class J2aa {
                 try {
                     readConnProfile(chooser.getSelectedFile());
                     setData(this);
+                    fLog.setText(null);
                     lastConnFileDir = chooser.getSelectedFile().getParent();
                 } catch (IOException ex) {
                     showMessageDialog(getAppFrame(), String.format("не удалось прочитать файл %s", chooser.getSelectedFile().getName()), "Ошибка чтения файла", ERROR_MESSAGE);
