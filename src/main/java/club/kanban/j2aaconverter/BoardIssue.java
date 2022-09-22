@@ -2,8 +2,10 @@ package club.kanban.j2aaconverter;
 
 import club.kanban.jirarestclient.*;
 import lombok.Getter;
+import net.rcarz.javaclient.agile.Epic;
 import net.rcarz.jiraclient.JiraException;
 import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -31,16 +33,37 @@ public class BoardIssue {
     private Long blockedDays;
     @Getter
     private String priority;
+    @Getter
+    private String epicKey;
+    @Getter
+    private String epicName;
+    @Getter
+    private String components;
 
     public static BoardIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         BoardIssue boardIssue = new BoardIssue();
         boardIssue.key = issue.getKey();
 
+        Epic epic = issue.getEpic();
+        boardIssue.epicKey = (epic != null) ? epic.getKey() : "";
+        boardIssue.epicName = (epic != null) ? epic.getName() : "";
+
+        Object object = issue.getAttribute("components");
+        if (object instanceof JSONArray) {
+            List<String> compList = new ArrayList<>(5);
+            for (int i = 0; i < ((JSONArray) object).size(); i++) {
+                JSONObject jsonObject = ((JSONArray) object).getJSONObject(i);
+                compList.add(jsonObject.getString("name"));
+            }
+            boardIssue.components = "[" + String.join("|", compList) + "]";
+        } else
+            boardIssue.components = "";
+
         boardIssue.link = "";
         try {
             URL restApiUrl = new URL(issue.getSelfURL());
             boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException ignored) {
         }
 
         boardIssue.name = issue.getName();

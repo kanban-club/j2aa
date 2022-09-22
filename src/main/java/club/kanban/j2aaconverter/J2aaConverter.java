@@ -31,9 +31,9 @@ public class J2aaConverter {
 
         List<String> fields;
         if (!SHOW_ISSUE_NAME)
-            fields = Arrays.asList("key", "issuetype", "labels", "status", "created", "priority");
+            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
         else
-            fields = Arrays.asList("key", "issuetype", "labels", "status", "created", "priority", "summary");
+            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary");
 
         List<Issue> issues = board.getAllIssuesForBoard(jqlSubFilter, fields, new HashMap<>() {{
             put("expand", "changelog");
@@ -47,7 +47,7 @@ public class J2aaConverter {
                 BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
                 boardIssues.add(boardIssue);
             } catch (JiraException e) {
-                System.out.println(String.format("%s: %s", issue.getKey(), e.getMessage()));
+                System.out.printf("%s: %s%n", issue.getKey(), e.getMessage());
             }
         }
     }
@@ -63,7 +63,7 @@ public class J2aaConverter {
             String header = "ID,Link,Name";
             for (BoardColumn boardColumn : boardConfig.getBoardColumns())
                 header = header.concat("," + boardColumn.getName());
-            header += ",Project,Type,Blocked Days,Labels,Priority";
+            header += ",Project,Type,Blocked Days,Labels,Priority,EpicKey,EpicName,Components";
 
             writer.write(header);
 
@@ -87,7 +87,10 @@ public class J2aaConverter {
                         boardIssue.getIssueTypeName(),
                         boardIssue.getBlockedDays().toString(),
                         boardIssue.getLabels(),
-                        boardIssue.getPriority()
+                        boardIssue.getPriority(),
+                        boardIssue.getEpicKey(),
+                        boardIssue.getEpicName(),
+                        boardIssue.getComponents()
                 ));
 
                 writer.append('\n');
