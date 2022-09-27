@@ -14,9 +14,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-//interface Logger {
-//    void log(String msg, Object... objects);
-//}
+import static club.kanban.j2aaconverter.CSVFormatter.formatCommas;
+import static club.kanban.j2aaconverter.CSVFormatter.formatQuotes;
 
 public class J2aaConverter {
     final static boolean SHOW_ISSUE_LINK = true;
@@ -62,7 +61,7 @@ public class J2aaConverter {
             // запись всего заголовка
             String header = "ID,Link,Name";
             for (BoardColumn boardColumn : boardConfig.getBoardColumns())
-                header = header.concat("," + boardColumn.getName());
+                header = header.concat("," + formatQuotes(boardColumn.getName()));
             header += ",Project,Type,Blocked Days,Labels,Priority,EpicKey,EpicName,Components";
 
             writer.write(header);
@@ -74,7 +73,7 @@ public class J2aaConverter {
 
                 row = boardIssue.getKey()
                         + "," + (SHOW_ISSUE_LINK ? boardIssue.getLink() : "")
-                        + "," + (SHOW_ISSUE_NAME ? "\"" + boardIssue.getName().replace("\"", "'") + "\"" : "");
+                        + "," + (SHOW_ISSUE_NAME ? formatQuotes(boardIssue.getName()) : "");
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
@@ -86,11 +85,11 @@ public class J2aaConverter {
                         boardIssue.getProjectKey(),
                         boardIssue.getIssueTypeName(),
                         boardIssue.getBlockedDays().toString(),
-                        boardIssue.getLabels(),
+                        formatCommas(boardIssue.getLabels()),
                         boardIssue.getPriority(),
                         boardIssue.getEpicKey(),
-                        boardIssue.getEpicName(),
-                        boardIssue.getComponents()
+                        formatQuotes(boardIssue.getEpicName()),
+                        formatCommas(boardIssue.getComponents())
                 ));
 
                 writer.append('\n');
