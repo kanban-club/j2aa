@@ -14,8 +14,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static club.kanban.j2aaconverter.CSVFormatter.formatCommas;
-import static club.kanban.j2aaconverter.CSVFormatter.formatQuotes;
+import static club.kanban.j2aaconverter.CSVFormatter.*;
 
 public class J2aaConverter {
     final static boolean SHOW_ISSUE_LINK = true;
@@ -55,25 +54,23 @@ public class J2aaConverter {
         if (outputFile.getParentFile() != null)
             Files.createDirectories(outputFile.getParentFile().toPath());
 
-        OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8);
-
-        try {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
             // запись всего заголовка
             String header = "ID,Link,Name";
             for (BoardColumn boardColumn : boardConfig.getBoardColumns())
-                header = header.concat("," + formatQuotes(boardColumn.getName()));
+                header = header.concat("," + formatString(boardColumn.getName()));
             header += ",Project,Type,Blocked Days,Labels,Priority,EpicKey,EpicName,Components";
 
             writer.write(header);
 
             // запись строчек
-            DateFormat df = new SimpleDateFormat( "MM/dd/yyyy");
+            DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
             for (BoardIssue boardIssue : boardIssues) {
                 String row;
 
                 row = boardIssue.getKey()
                         + "," + (SHOW_ISSUE_LINK ? boardIssue.getLink() : "")
-                        + "," + (SHOW_ISSUE_NAME ? formatQuotes(boardIssue.getName()) : "");
+                        + "," + (SHOW_ISSUE_NAME ? formatString(boardIssue.getName()) : "");
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
@@ -85,19 +82,17 @@ public class J2aaConverter {
                         boardIssue.getProjectKey(),
                         boardIssue.getIssueTypeName(),
                         boardIssue.getBlockedDays().toString(),
-                        formatCommas(boardIssue.getLabels()),
+                        formatList(boardIssue.getLabels()),
                         boardIssue.getPriority(),
                         boardIssue.getEpicKey(),
-                        formatQuotes(boardIssue.getEpicName()),
-                        formatCommas(boardIssue.getComponents())
+                        formatString(boardIssue.getEpicName()),
+                        formatList(boardIssue.getComponents())
                 ));
 
                 writer.append('\n');
                 writer.append(row);
             }
             writer.flush();
-        } finally {
-            writer.close();
         }
     }
 

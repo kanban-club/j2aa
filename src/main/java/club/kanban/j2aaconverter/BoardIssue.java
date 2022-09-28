@@ -26,7 +26,7 @@ public class BoardIssue {
     @Getter
     private String issueTypeName;
     @Getter
-    private String labels;
+    private List<String> labels;
     @Getter
     private Date[] columnTransitionsLog;
     @Getter
@@ -38,7 +38,7 @@ public class BoardIssue {
     @Getter
     private String epicName;
     @Getter
-    private String components;
+    private List<String> components;
 
     public static BoardIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         BoardIssue boardIssue = new BoardIssue();
@@ -49,15 +49,13 @@ public class BoardIssue {
         boardIssue.epicName = (epic != null) ? epic.getName() : "";
 
         Object object = issue.getAttribute("components");
-        if (object instanceof JSONArray) {
-            List<String> compList = new ArrayList<>(5);
+        if (object instanceof JSONArray && ((JSONArray) object).size() > 0) {
+            boardIssue.components = new ArrayList<>(5);
             for (int i = 0; i < ((JSONArray) object).size(); i++) {
                 JSONObject jsonObject = ((JSONArray) object).getJSONObject(i);
-                compList.add(jsonObject.getString("name"));
+                boardIssue.components.add(jsonObject.getString("name"));
             }
-            boardIssue.components = "[" + String.join("|", compList) + "]";
-        } else
-            boardIssue.components = "";
+        }
 
         boardIssue.link = "";
         try {
@@ -69,7 +67,12 @@ public class BoardIssue {
         boardIssue.name = issue.getName();
         boardIssue.projectKey = issue.getKey().substring(0, issue.getKey().indexOf("-")); // project key: issue.getProject.getKey()
         boardIssue.issueTypeName = issue.getIssueType().getName();
-        boardIssue.labels = (((JSONArray) issue.getAttribute("labels")).size() > 0 ? "[" + ((JSONArray) issue.getAttribute("labels")).join("|", true) + "]" : "");
+
+        boardIssue.labels = new ArrayList<>(((JSONArray) issue.getAttribute("labels")).size());
+        for(Object label : (JSONArray) issue.getAttribute("labels")) {
+            boardIssue.labels.add((String) label);
+        }
+
         boardIssue.priority = issue.getPriority().getName();
 
         boardIssue.initTransitionsLog(issue, boardConfig);
@@ -77,7 +80,7 @@ public class BoardIssue {
         return boardIssue;
     }
 
-    private static long getDaysBetween(Date start, Date end){
+    private static long getDaysBetween(Date start, Date end) {
         LocalDate localStart = start.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate localEnd = end.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         return ChronoUnit.DAYS.between(localStart, localEnd);
@@ -94,7 +97,8 @@ public class BoardIssue {
         //Добавляем начальный статус вручную т.к. в Jira его нет
         if (statusChanges.size() > 0)
             statuses.add(new Status(issue.getCreated(), statusChanges.get(0).getFrom(), statusChanges.get(0).getFromString()));
-        else statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
+        else
+            statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
 
         // Достраиваем цепочку статусов
         for (Change change : statusChanges) {
@@ -156,18 +160,18 @@ public class BoardIssue {
         if (firstColumnId != null) {
 
             // по первому столбцу дата совпадает с датой перехода в нее
-            Long columnId = firstColumnId;
-            columnTransitionsLog[columnId.intValue()] = firstDate;
-            Date prevDate = columnTransitionsLog[columnId.intValue()];
-            Long leadTimeMillis = columnLTs[columnId.intValue()];
+            long columnId = firstColumnId;
+            columnTransitionsLog[(int) columnId] = firstDate;
+            Date prevDate = columnTransitionsLog[(int) columnId];
+            Long leadTimeMillis = columnLTs[(int) columnId];
             columnId++;
 
             //далее рассчитываем новые даты, по всем остальным столбцам доски, но не далее нынешнего
             while (columnId < columnLTs.length && columnId <= currentIssueColumn) {
-                if (columnLTs[columnId.intValue()] != null) {
-                    columnTransitionsLog[columnId.intValue()] = new Date(prevDate.getTime() + leadTimeMillis);
-                    prevDate = columnTransitionsLog[columnId.intValue()];
-                    leadTimeMillis = columnLTs[columnId.intValue()];
+                if (columnLTs[(int) columnId] != null) {
+                    columnTransitionsLog[(int) columnId] = new Date(prevDate.getTime() + leadTimeMillis);
+                    prevDate = columnTransitionsLog[(int) columnId];
+                    leadTimeMillis = columnLTs[(int) columnId];
                 }
                 columnId++;
             }
