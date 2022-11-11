@@ -73,7 +73,7 @@ public class BoardIssue {
             boardIssue.labels.add((String) label);
         }
 
-        boardIssue.priority = issue.getPriority().getName();
+        boardIssue.priority = issue.getPriority() != null ? issue.getPriority().getName() : null;
 
         boardIssue.initTransitionsLog(issue, boardConfig);
         boardIssue.initBlockedDays(issue);
