@@ -1,5 +1,6 @@
 package club.kanban.j2aaconverter;
 
+import club.kanban.j2aaconverter.Status;
 import club.kanban.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.javaclient.agile.Epic;
@@ -15,6 +16,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class BoardIssue {
+    private static final boolean USE_MAX_COLUMN = true;
+
     @Getter
     private String key;
     @Getter
@@ -69,7 +72,7 @@ public class BoardIssue {
         boardIssue.issueTypeName = issue.getIssueType().getName();
 
         boardIssue.labels = new ArrayList<>(((JSONArray) issue.getAttribute("labels")).size());
-        for(Object label : (JSONArray) issue.getAttribute("labels")) {
+        for (Object label : (JSONArray) issue.getAttribute("labels")) {
             boardIssue.labels.add((String) label);
         }
 
@@ -126,12 +129,17 @@ public class BoardIssue {
         }
 
         //считаем время цикла в каждом столбце
+        long maxColumnId = 0;
         for (Status status : statuses) {
             Long columnId = status2Column.get(status.getStatusId());
             if (columnId != null) {
                 if (columnLTs[columnId.intValue()] == null)
                     columnLTs[columnId.intValue()] = status.getCycleTimeInMillis();
-                else columnLTs[columnId.intValue()] += status.getCycleTimeInMillis();
+                else
+                    columnLTs[columnId.intValue()] += status.getCycleTimeInMillis();
+
+                if (columnId > maxColumnId)
+                    maxColumnId = columnId;
             } else {
                 // DEBUG
                 System.out.println(issue.getKey() + " Found status not associated with any column: " + status.getName());
@@ -139,7 +147,6 @@ public class BoardIssue {
         }
 
         // 4. Рассчитать новое время прохождения столбцов задачей по доске
-        Long currentIssueColumn = status2Column.get(issue.getStatus().getId());
         columnTransitionsLog = new Date[columnLTs.length];
         Arrays.fill(columnTransitionsLog, null);
 
@@ -166,8 +173,8 @@ public class BoardIssue {
             Long leadTimeMillis = columnLTs[(int) columnId];
             columnId++;
 
-            //далее рассчитываем новые даты, по всем остальным столбцам доски, но не далее нынешнего
-            while (columnId < columnLTs.length && columnId <= currentIssueColumn) {
+            //далее рассчитываем новые даты, по всем остальным столбцам доски
+            while (columnId < columnLTs.length && columnId <= (USE_MAX_COLUMN ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
                 if (columnLTs[(int) columnId] != null) {
                     columnTransitionsLog[(int) columnId] = new Date(prevDate.getTime() + leadTimeMillis);
                     prevDate = columnTransitionsLog[(int) columnId];
@@ -177,7 +184,8 @@ public class BoardIssue {
             }
 
             // если колонка Backlog не сопоставлена ни с какими статусами, то сопоставляем ее с моментом создания задачи
-            if (columnTransitionsLog[0] == null) columnTransitionsLog[0] = issue.getCreated();
+            if (columnTransitionsLog[0] == null)
+                columnTransitionsLog[0] = issue.getCreated();
         }
     }
 
