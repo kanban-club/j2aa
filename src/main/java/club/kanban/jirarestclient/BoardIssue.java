@@ -1,7 +1,6 @@
-package club.kanban.j2aaconverter;
+package club.kanban.jirarestclient;
 
 import club.kanban.j2aaconverter.Status;
-import club.kanban.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.javaclient.agile.Epic;
 import net.rcarz.jiraclient.JiraException;
