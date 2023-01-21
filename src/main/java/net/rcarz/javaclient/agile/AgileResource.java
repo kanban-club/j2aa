@@ -43,9 +43,10 @@ public abstract class AgileResource {
     public static final String ATTR_NAME = "name";
     public static final String ATTR_SELF = "self";
 
-    public static final String RESOURCE_URI = "/rest/agile/1.0/";
+//    public static final String RESOURCE_URI = "/rest/agile/1.0/";
+    public static final String RESOURCE_URI = "/rest/agile/latest/";
 
-    private RestClient restclient = null;
+    private RestClient restclient;
     private long id = 0;
     private String name;
     private String self;
@@ -117,7 +118,7 @@ public abstract class AgileResource {
             throw new JiraException("No array found for name '" + listName + "'");
         }
 
-        List<T> results = new ArrayList<T>();
+        List<T> results = new ArrayList<>();
 
         for (Object v : (JSONArray) jo.get(listName)) {
             T item = getResource(type, v, restclient);
