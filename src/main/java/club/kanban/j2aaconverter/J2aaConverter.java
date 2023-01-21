@@ -24,22 +24,20 @@ public class J2aaConverter {
     @Getter
     private List<BoardIssue> boardIssues;
 
+    /**
+     * Get set of issues for the board
+     * @param board - Board
+     * @param jqlSubFilter - Sub Filter
+     * @param progressMonitor - Callback procedure
+     * @throws JiraException - Jira Exception
+     */
     public void importFromJira_v2(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
-        // Get all Issues for the board
-
-        List<String> fields;
-        if (!SHOW_ISSUE_NAME)
-            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
-        else
-            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary");
 
         this.boardConfig = board.getBoardConfig();
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
         do {
-            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, fields, new HashMap<>() {{
-                put("expand", "changelog");
-            }}, startAt, 0, boardConfig);
+            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, SHOW_ISSUE_NAME);
 
             if (boardIssuesSet.getBoardIssues().size() > 0) {
                 if (boardIssues == null)

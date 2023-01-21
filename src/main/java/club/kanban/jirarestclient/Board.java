@@ -1,17 +1,19 @@
 package club.kanban.jirarestclient;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Board extends net.rcarz.javaclient.agile.Board {
+    @Getter @Setter
+    private BoardConfig boardConfig;
+
     /**
      * Creates a Board from a JSON payload.
      *
@@ -23,12 +25,14 @@ public class Board extends net.rcarz.javaclient.agile.Board {
     }
 
     public static Board get(RestClient restClient, long id) throws JiraException {
-        return get(restClient, Board.class, RESOURCE_URI + "board/" + id);
+        Board board = get(restClient, Board.class, RESOURCE_URI + "board/" + id);
+        board.setBoardConfig(get(restClient, BoardConfig.class, RESOURCE_URI + "board/" + id + "/configuration"));
+        return board;
     }
 
-    public BoardConfig getBoardConfig() throws JiraException {
-        return get(getRestclient(), BoardConfig.class, RESOURCE_URI + "board/" + getId() + "/configuration");
-    }
+//    public BoardConfig getBoardConfig() throws JiraException {
+//        return get(getRestclient(), BoardConfig.class, RESOURCE_URI + "board/" + getId() + "/configuration");
+//    }
 
     public List<Issue> getAllIssuesForBoard(
             String jqlSubFilter, List<String> fields, Map<String, String> extraParams,
@@ -45,25 +49,23 @@ public class Board extends net.rcarz.javaclient.agile.Board {
     }
 
     public BoardIssuesSet getBoardIssuesSet(String jqlSubFilter,
-                                            List<String> fields,
-                                            Map<String, String> extraParams,
                                             int startAt,
                                             int maxResults,
-                                            BoardConfig boardConfig) throws JiraException {
+                                            boolean useIssueSummary) throws JiraException {
 
         BoardIssuesSet boardIssuesSet;
         String url = RESOURCE_URI + "board/" + getId() + "/issue";
 
         Map<String, String> params = new HashMap<>();
+        params.put("expand", "changelog");
 
         if (jqlSubFilter != null)
             params.put("jql", jqlSubFilter);
 
-        if (fields != null)
-            params.put("fields", String.join(",", fields));
-
-        if (extraParams != null)
-            params.putAll(extraParams);
+        if (!useIssueSummary)
+            params.put("fields", String.join(",", Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority")));
+        else
+           params.put("fields", String.join(",", Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary")));
 
         if (maxResults > 0)
             params.put("maxResults", Integer.toString(maxResults));
