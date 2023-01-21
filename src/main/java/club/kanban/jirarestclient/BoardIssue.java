@@ -2,7 +2,7 @@ package club.kanban.jirarestclient;
 
 import club.kanban.j2aaconverter.Status;
 import lombok.Getter;
-import net.rcarz.javaclient.agile.Epic;
+import net.rcarz.jiraclient.agile.Epic;
 import net.rcarz.jiraclient.JiraException;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;

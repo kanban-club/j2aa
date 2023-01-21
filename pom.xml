@@ -19,7 +19,7 @@
     <description>Jira to actionableagile.com</description>
 
     <properties>
-        <mainClass>club.kanban.j2aa.J2aa</mainClass>
+        <mainClass>club.kanban.j2aa.J2aaApp</mainClass>
         <maven.compiler.source>14</maven.compiler.source>
         <maven.compiler.target>14</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

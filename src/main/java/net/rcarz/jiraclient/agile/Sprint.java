@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -59,7 +59,7 @@ public class Sprint extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public static Sprint get(RestClient restclient, long sprintId) throws JiraException {
-        return AgileResource.get(restclient, Sprint.class, RESOURCE_URI + "sprint/" + sprintId);
+        return get(restclient, Sprint.class, RESOURCE_URI + "sprint/" + sprintId);
     }
 
     /**
@@ -71,7 +71,7 @@ public class Sprint extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public static List<Sprint> getAll(RestClient restclient, long boardId) throws JiraException {
-        return AgileResource.list(restclient, Sprint.class, RESOURCE_URI + "board/" + boardId + "/sprint");
+        return list(restclient, Sprint.class, RESOURCE_URI + "board/" + boardId + "/sprint");
     }
 
     /**
@@ -79,7 +79,7 @@ public class Sprint extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Issue> getIssues() throws JiraException {
-        return AgileResource.list(getRestclient(), Issue.class, RESOURCE_URI + "sprint/" + getId() + "/issue", "issues");
+        return list(getRestClient(), Issue.class, RESOURCE_URI + "sprint/" + getId() + "/issue", "issues");
     }
 
     @Override

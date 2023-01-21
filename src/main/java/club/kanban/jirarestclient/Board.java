@@ -6,11 +6,10 @@ import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class Board extends net.rcarz.javaclient.agile.Board {
+public class Board extends net.rcarz.jiraclient.agile.Board {
     @Getter @Setter
     private BoardConfig boardConfig;
 
@@ -74,8 +73,8 @@ public class Board extends net.rcarz.javaclient.agile.Board {
             params.put("startAt", Integer.toString(startAt));
 
         try {
-            JSON result = getRestclient().get(url, params);
-            List<Issue> issues = getResourceArray(Issue.class, result, getRestclient(), "issues");
+            JSON result = getRestClient().get(url, params);
+            List<Issue> issues = getResourceArray(Issue.class, result, getRestClient(), "issues");
 
             // Map issue's changelog to board columns
             List<BoardIssue> boardIssues = new ArrayList<>(issues.size());

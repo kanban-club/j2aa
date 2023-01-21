@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -57,7 +57,7 @@ public class Epic extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public static Epic get(RestClient restclient, long id) throws JiraException {
-        return AgileResource.get(restclient, Epic.class, RESOURCE_URI + "epic/" + id);
+        return get(restclient, Epic.class, RESOURCE_URI + "epic/" + id);
     }
 
     /**
@@ -67,7 +67,7 @@ public class Epic extends AgileResource {
      */
     public Issue asIssue(boolean refresh) throws JiraException {
         if (this.issue == null || refresh) {
-            this.issue = Issue.get(getRestclient(), getId());
+            this.issue = Issue.get(getRestClient(), getId());
         }
         return this.issue;
     }
@@ -77,7 +77,7 @@ public class Epic extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Issue> getIssues() throws JiraException {
-        return AgileResource.list(getRestclient(), Issue.class, RESOURCE_URI + "epic/" + getId() + "/issue", "issues");
+        return list(getRestClient(), Issue.class, RESOURCE_URI + "epic/" + getId() + "/issue", "issues");
     }
 
     /**

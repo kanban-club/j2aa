@@ -7,10 +7,9 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-public class Issue extends net.rcarz.javaclient.agile.Issue {
+public class Issue extends net.rcarz.jiraclient.agile.Issue {
 
     @Getter
     List<Change> statusChanges;

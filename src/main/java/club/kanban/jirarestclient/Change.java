@@ -1,7 +1,7 @@
 package club.kanban.jirarestclient;
 
 import lombok.Getter;
-import net.rcarz.javaclient.agile.Field_v0_6;
+import net.rcarz.jiraclient.agile.Field_v0_6;
 import net.sf.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 

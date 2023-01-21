@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -209,7 +209,7 @@ public abstract class AgileResource {
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         List<T> result = null;
         if (subJson.containsKey(resourceName)) {
-            result = getResourceArray(type, subJson.get(resourceName), getRestclient(), resourceName + "s");
+            result = getResourceArray(type, subJson.get(resourceName), getRestClient(), resourceName + "s");
         }
         return result;
     }
@@ -228,7 +228,7 @@ public abstract class AgileResource {
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         T result = null;
         if (subJson.containsKey(resourceName) && !subJson.get(resourceName).equals("null")) {
-            result = getResource(type, subJson.get(resourceName), getRestclient());
+            result = getResource(type, subJson.get(resourceName), getRestClient());
         }
         return result;
     }
@@ -264,7 +264,7 @@ public abstract class AgileResource {
     /**
      * @return The REST client used to access the current resource.
      */
-    protected RestClient getRestclient() {
+    protected RestClient getRestClient() {
         return restclient;
     }
 

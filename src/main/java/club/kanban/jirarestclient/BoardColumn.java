@@ -2,7 +2,7 @@ package club.kanban.jirarestclient;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.rcarz.javaclient.agile.AgileResource;
+import net.rcarz.jiraclient.agile.AgileResource;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
@@ -31,6 +31,6 @@ public class BoardColumn extends AgileResource {
     @Override
     protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
-        statuses = getResourceArray(BoardColumnStatus.class, json, getRestclient(), "statuses");
+        statuses = getResourceArray(BoardColumnStatus.class, json, getRestClient(), "statuses");
     }
 }
