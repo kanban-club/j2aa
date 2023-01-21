@@ -31,7 +31,7 @@ public class J2aaConverter {
      * @param progressMonitor - Callback procedure
      * @throws JiraException - Jira Exception
      */
-    public void importFromJira_v2(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
+    public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
 
         this.boardConfig = board.getBoardConfig();
         BoardIssuesSet boardIssuesSet;
@@ -49,31 +49,31 @@ public class J2aaConverter {
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
 
-    public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
-        // Get all Issues for the board
-
-        List<String> fields;
-        if (!SHOW_ISSUE_NAME)
-            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
-        else
-            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary");
-
-        List<Issue> issues = board.getAllIssuesForBoard(jqlSubFilter, fields, new HashMap<>() {{
-            put("expand", "changelog");
-        }}, progressMonitor);
-
-        // Map issue's changelog to board columns
-        this.boardConfig = board.getBoardConfig();
-        boardIssues = new ArrayList<>(issues.size());
-        for (Issue issue : issues) {
-            try {
-                BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
-                boardIssues.add(boardIssue);
-            } catch (JiraException e) {
-                System.out.printf("%s: %s%n", issue.getKey(), e.getMessage());
-            }
-        }
-    }
+//    public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
+//        // Get all Issues for the board
+//
+//        List<String> fields;
+//        if (!SHOW_ISSUE_NAME)
+//            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
+//        else
+//            fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary");
+//
+//        List<Issue> issues = board.getAllIssuesForBoard(jqlSubFilter, fields, new HashMap<>() {{
+//            put("expand", "changelog");
+//        }}, progressMonitor);
+//
+//        // Map issue's changelog to board columns
+//        this.boardConfig = board.getBoardConfig();
+//        boardIssues = new ArrayList<>(issues.size());
+//        for (Issue issue : issues) {
+//            try {
+//                BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
+//                boardIssues.add(boardIssue);
+//            } catch (JiraException e) {
+//                System.out.printf("%s: %s%n", issue.getKey(), e.getMessage());
+//            }
+//        }
+//    }
 
     public void export2File(File outputFile) throws IOException {
         if (outputFile.getParentFile() != null)

@@ -394,7 +394,7 @@ public class J2aa {
 
             Date startDate = new Date();
 
-            converter.importFromJira_v2(board, getJqlSubFilter(), (current, max) -> {
+            converter.importFromJira(board, getJqlSubFilter(), (current, max) -> {
                 if (max > 0) fLog.append(String.format("%d из %d issues получено\n", current, max));
                 fLog.update(fLog.getGraphics());
             });
