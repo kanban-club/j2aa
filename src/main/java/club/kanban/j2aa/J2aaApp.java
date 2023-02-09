@@ -28,7 +28,7 @@ import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
 public class J2aaApp {
-    public static final String VERSION_KEY = "version";
+    public static final String VERSION_KEY = "build.version";
     public static final String APP_CMD_LINE = "java -jar j2aa.jar";
     public static final String JVM_OPTIONS_FILE = "jvm.config";
     public static final String PROFILE_ARG = "profile";
@@ -89,7 +89,8 @@ public class J2aaApp {
         appFrame = new JFrame();
 
         try {
-            String version = getVersionFromManifest();
+            String version = getVersionFromProperties();
+
             if (version != null)
                 setAppTitle(DEFAULT_APP_TITLE + " v" + version);
             else
@@ -309,6 +310,17 @@ public class J2aaApp {
             return attributes.getValue(VERSION_KEY);
         }
         return null;
+    }
+
+    private String getVersionFromProperties() throws Exception {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
+        String result = null;
+        if (inputStream != null) {
+            Properties properties = new Properties();
+            properties.load(inputStream);
+            result = properties.getProperty(VERSION_KEY);
+        }
+        return result;
     }
 
     public void setData(J2aaApp data) {
