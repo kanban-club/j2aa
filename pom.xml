@@ -13,7 +13,7 @@
 
     <groupId>club.kanban</groupId>
     <artifactId>j2aa</artifactId>
-    <version>1.6</version>
+    <version>1.7-SNAPSHOT</version>
 
     <name>j2aa</name>
     <description>Jira to actionableagile.com</description>
