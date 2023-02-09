@@ -26,12 +26,11 @@ public class J2aaService {
             @RequestParam(defaultValue = "22232") int boardId,
             @RequestParam(defaultValue = "createdDate >= '2022/01/01'") String jqlSubFilter,
             @RequestParam(defaultValue = "http://jiraserver") String jiraUrl,
-            @RequestParam(defaultValue = "false") boolean useIssueSummary,
             String username,
             String password
     ) throws JiraException {
         JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(username, password));
         Board board = Board.get(jiraClient.getRestClient(), boardId);
-        return board.getBoardIssuesSet(jqlSubFilter, startAt, maxResults, useIssueSummary);
+        return board.getBoardIssuesSet(jqlSubFilter, startAt, maxResults);
     }
 }

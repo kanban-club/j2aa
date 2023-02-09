@@ -49,8 +49,7 @@ public class Board extends net.rcarz.jiraclient.agile.Board {
 
     public BoardIssuesSet getBoardIssuesSet(String jqlSubFilter,
                                             int startAt,
-                                            int maxResults,
-                                            boolean useIssueSummary) throws JiraException {
+                                            int maxResults) throws JiraException {
 
         BoardIssuesSet boardIssuesSet;
         String url = RESOURCE_URI + "board/" + getId() + "/issue";
@@ -61,10 +60,7 @@ public class Board extends net.rcarz.jiraclient.agile.Board {
         if (jqlSubFilter != null)
             params.put("jql", jqlSubFilter);
 
-        if (!useIssueSummary)
-            params.put("fields", String.join(",", Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority")));
-        else
-           params.put("fields", String.join(",", Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority", "summary")));
+        params.put("fields", String.join(",", BoardIssue.getHttpFields()));
 
         if (maxResults > 0)
             params.put("maxResults", Integer.toString(maxResults));

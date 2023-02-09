@@ -1,5 +1,6 @@
 package club.kanban.jirarestclient;
 
+import club.kanban.j2aaconverter.CSVFormatter;
 import club.kanban.j2aaconverter.Status;
 import lombok.Getter;
 import net.rcarz.jiraclient.agile.Epic;
@@ -19,6 +20,9 @@ public class BoardIssue {
     // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
     private static final boolean USE_MAX_COLUMN = false;
 
+    private final static boolean SHOW_ISSUE_LINK = true;
+    private final static boolean SHOW_ISSUE_NAME = false;
+
     @Getter
     private String key;
     @Getter
@@ -26,64 +30,78 @@ public class BoardIssue {
     @Getter
     private String name;
     @Getter
-    private String projectKey;
-    @Getter
-    private String issueTypeName;
-    @Getter
-    private List<String> labels;
+    private Map<String, String> attributes;
     @Getter
     private Date[] columnTransitionsLog;
     @Getter
     private Long blockedDays;
-    @Getter
-    private String priority;
-    @Getter
-    private String epicKey;
-    @Getter
-    private String epicName;
-    @Getter
-    private List<String> components;
 
     public static BoardIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         BoardIssue boardIssue = new BoardIssue();
+
         boardIssue.key = issue.getKey();
 
-        Epic epic = issue.getEpic();
-        boardIssue.epicKey = (epic != null) ? epic.getKey() : "";
-        boardIssue.epicName = (epic != null) ? epic.getName() : "";
+        if (SHOW_ISSUE_NAME)
+            boardIssue.name = issue.getName();
+        else
+            boardIssue.name = "";
 
-        Object object = issue.getAttribute("components");
-        if (object instanceof JSONArray && ((JSONArray) object).size() > 0) {
-            boardIssue.components = new ArrayList<>(5);
-            for (int i = 0; i < ((JSONArray) object).size(); i++) {
-                JSONObject jsonObject = ((JSONArray) object).getJSONObject(i);
-                boardIssue.components.add(jsonObject.getString("name"));
+        boardIssue.link = "";
+        if (SHOW_ISSUE_LINK) {
+            try {
+                URL restApiUrl = new URL(issue.getSelfURL());
+                boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+            } catch (MalformedURLException ignored) {
             }
         }
 
-        boardIssue.link = "";
-        try {
-            URL restApiUrl = new URL(issue.getSelfURL());
-            boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
-        } catch (MalformedURLException ignored) {
-        }
+        //Считываем дополнительыне поля для Issue
+        boardIssue.attributes = new LinkedHashMap<>();
 
-        boardIssue.name = issue.getName();
-        boardIssue.projectKey = issue.getKey().substring(0, issue.getKey().indexOf("-")); // project key: issue.getProject.getKey()
-        boardIssue.issueTypeName = issue.getIssueType().getName();
+        boardIssue.attributes.put("Project", issue.getKey().substring(0, issue.getKey().indexOf("-"))); // project key: issue.getProject.getKey()
+        boardIssue.attributes.put("Issue Type", issue.getIssueType().getName());
+        boardIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
 
-        boardIssue.labels = new ArrayList<>(((JSONArray) issue.getAttribute("labels")).size());
+        List<String> labels = new ArrayList<>(((JSONArray) issue.getAttribute("labels")).size());
         for (Object label : (JSONArray) issue.getAttribute("labels")) {
-            boardIssue.labels.add((String) label);
+            labels.add((String) label);
         }
+        boardIssue.attributes.put("Labels", CSVFormatter.formatList(labels));
 
-        boardIssue.priority = issue.getPriority() != null ? issue.getPriority().getName() : null;
+        List<String> components = new ArrayList<>(5);
+        Object object = issue.getAttribute("components");
+        if (object instanceof JSONArray && ((JSONArray) object).size() > 0) {
+            for (int i = 0; i < ((JSONArray) object).size(); i++) {
+                JSONObject jsonObject = ((JSONArray) object).getJSONObject(i);
+                components.add(jsonObject.getString("name"));
+            }
+        }
+        boardIssue.attributes.put("Components", CSVFormatter.formatList(components));
+
+        Epic epic = issue.getEpic();
+        if (epic != null) {
+            boardIssue.attributes.put("Epic Key", epic.getKey());
+            boardIssue.attributes.put("Epic Name", epic.getName());
+        } else {
+            boardIssue.attributes.put("Epic Key", "");
+            boardIssue.attributes.put("Epic Name", "");
+        }
 
         boardIssue.initTransitionsLog(issue, boardConfig);
         boardIssue.initBlockedDays(issue);
         return boardIssue;
     }
 
+    public static List<String> getHttpFields() {
+        List<String> fields;
+
+        fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
+
+        if (SHOW_ISSUE_NAME)
+            fields.add("summary");
+
+        return fields;
+    }
     private static long getDaysBetween(Date start, Date end) {
         LocalDate localStart = start.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate localEnd = end.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
