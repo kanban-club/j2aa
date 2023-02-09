@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class AgileResource extends net.rcarz.javaclient.agile.AgileResource {
+public class AgileResource extends net.rcarz.jiraclient.agile.AgileResource {
     /**
      * Creates a new Agile resource.
      *
@@ -29,7 +29,7 @@ public class AgileResource extends net.rcarz.javaclient.agile.AgileResource {
      * @return a list of boards
      * @throws JiraException when the retrieval fails
      */
-    static <T extends net.rcarz.javaclient.agile.AgileResource> T get(RestClient restclient, Class<T> type, String url, Map<String, String> params) throws JiraException {
+    static <T extends net.rcarz.jiraclient.agile.AgileResource> T get(RestClient restclient, Class<T> type, String url, Map<String, String> params) throws JiraException {
 
         JSON result;
         try {
@@ -45,7 +45,7 @@ public class AgileResource extends net.rcarz.javaclient.agile.AgileResource {
         );
     }
 
-    static <T extends net.rcarz.javaclient.agile.AgileResource> List<T> list(
+    static <T extends net.rcarz.jiraclient.agile.AgileResource> List<T> list(
             RestClient restClient, Class<T> type, String url,
             String listName, Map<String, String> params, @Nullable ProgressMonitor progressMonitor) throws JiraException {
 

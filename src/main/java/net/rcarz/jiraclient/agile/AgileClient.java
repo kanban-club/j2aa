@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;

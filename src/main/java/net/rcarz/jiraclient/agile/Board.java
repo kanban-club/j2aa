@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -54,7 +54,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public static Board get(RestClient restclient, long id) throws JiraException {
-        return AgileResource.get(restclient, Board.class, RESOURCE_URI + "board/" + id);
+        return get(restclient, Board.class, RESOURCE_URI + "board/" + id);
     }
 
     /**
@@ -65,7 +65,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public static List<Board> getAll(RestClient restclient) throws JiraException {
-        return AgileResource.list(restclient, Board.class, RESOURCE_URI + "board");
+        return list(restclient, Board.class, RESOURCE_URI + "board");
     }
 
     @Override
@@ -86,7 +86,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Sprint> getSprints() throws JiraException {
-        return Sprint.getAll(getRestclient(), getId());
+        return Sprint.getAll(getRestClient(), getId());
     }
 
     /**
@@ -94,7 +94,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Issue> getBacklog() throws JiraException {
-        return AgileResource.list(getRestclient(), Issue.class, RESOURCE_URI + "board/" + getId() + "/backlog", "issues");
+        return list(getRestClient(), Issue.class, RESOURCE_URI + "board/" + getId() + "/backlog", "issues");
     }
 
     /**
@@ -102,7 +102,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Issue> getIssuesWithoutEpic() throws JiraException {
-        return AgileResource.list(getRestclient(), Issue.class, RESOURCE_URI + "board/" + getId() + "/epic/none/issue", "issues");
+        return list(getRestClient(), Issue.class, RESOURCE_URI + "board/" + getId() + "/epic/none/issue", "issues");
     }
 
     /**
@@ -110,7 +110,7 @@ public class Board extends AgileResource {
      * @throws JiraException when the retrieval fails
      */
     public List<Epic> getEpics() throws JiraException {
-        return AgileResource.list(getRestclient(), Epic.class, RESOURCE_URI + "board/" + getId() + "/epic");
+        return list(getRestClient(), Epic.class, RESOURCE_URI + "board/" + getId() + "/epic");
     }
 }
 

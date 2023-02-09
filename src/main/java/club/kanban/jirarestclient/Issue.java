@@ -7,10 +7,9 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-public class Issue extends net.rcarz.javaclient.agile.Issue {
+public class Issue extends net.rcarz.jiraclient.agile.Issue {
 
     @Getter
     List<Change> statusChanges;
@@ -56,9 +55,9 @@ public class Issue extends net.rcarz.javaclient.agile.Issue {
         }
     }
 
-    public static Issue get(RestClient restClient, String key) throws JiraException {
-        return AgileResource.get(restClient, Issue.class, RESOURCE_URI + "issue/" + key, new HashMap<String, String>() {{
-            put("expand", "changelog");
-        }});
-    }
+//    public static Issue get(RestClient restClient, String key) throws JiraException {
+//        return AgileResource.get(restClient, Issue.class, RESOURCE_URI + "issue/" + key, new HashMap<String, String>() {{
+//            put("expand", "changelog");
+//        }});
+//    }
 }

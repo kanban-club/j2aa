@@ -1,4 +1,4 @@
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;

@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.javaclient.agile;
+package net.rcarz.jiraclient.agile;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -43,9 +43,10 @@ public abstract class AgileResource {
     public static final String ATTR_NAME = "name";
     public static final String ATTR_SELF = "self";
 
-    public static final String RESOURCE_URI = "/rest/agile/1.0/";
+//    public static final String RESOURCE_URI = "/rest/agile/1.0/";
+    public static final String RESOURCE_URI = "/rest/agile/latest/";
 
-    private RestClient restclient = null;
+    private RestClient restclient;
     private long id = 0;
     private String name;
     private String self;
@@ -117,7 +118,7 @@ public abstract class AgileResource {
             throw new JiraException("No array found for name '" + listName + "'");
         }
 
-        List<T> results = new ArrayList<T>();
+        List<T> results = new ArrayList<>();
 
         for (Object v : (JSONArray) jo.get(listName)) {
             T item = getResource(type, v, restclient);
@@ -208,7 +209,7 @@ public abstract class AgileResource {
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         List<T> result = null;
         if (subJson.containsKey(resourceName)) {
-            result = getResourceArray(type, subJson.get(resourceName), getRestclient(), resourceName + "s");
+            result = getResourceArray(type, subJson.get(resourceName), getRestClient(), resourceName + "s");
         }
         return result;
     }
@@ -227,7 +228,7 @@ public abstract class AgileResource {
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         T result = null;
         if (subJson.containsKey(resourceName) && !subJson.get(resourceName).equals("null")) {
-            result = getResource(type, subJson.get(resourceName), getRestclient());
+            result = getResource(type, subJson.get(resourceName), getRestClient());
         }
         return result;
     }
@@ -263,7 +264,7 @@ public abstract class AgileResource {
     /**
      * @return The REST client used to access the current resource.
      */
-    protected RestClient getRestclient() {
+    protected RestClient getRestClient() {
         return restclient;
     }
 

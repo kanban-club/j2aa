@@ -2,7 +2,7 @@ package club.kanban.jirarestclient;
 
 import club.kanban.j2aaconverter.Status;
 import lombok.Getter;
-import net.rcarz.javaclient.agile.Epic;
+import net.rcarz.jiraclient.agile.Epic;
 import net.rcarz.jiraclient.JiraException;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -15,7 +15,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class BoardIssue {
-    private static final boolean USE_MAX_COLUMN = true;
+    // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
+    // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
+    private static final boolean USE_MAX_COLUMN = false;
 
     @Getter
     private String key;
@@ -153,11 +155,28 @@ public class BoardIssue {
         Date firstDate = null;
         Long firstColumnId = null;
         for (Status status : statuses) {
+//            Long columnId = status2Column.get(status.getStatusId());
+//            if (columnId != null) {
+//                firstDate = status.getDateIn();
+//                firstColumnId = columnId;
+//                break;
+//            }
+
             Long columnId = status2Column.get(status.getStatusId());
             if (columnId != null) {
-                firstDate = status.getDateIn();
-                firstColumnId = columnId;
-                break;
+                if (firstDate == null) {
+                    // Инициалихируем первое значение firstColumnId & firstDate
+                    if (columnId <= (USE_MAX_COLUMN ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
+                        firstDate = status.getDateIn();
+                        firstColumnId = columnId;
+                    }
+                } else {
+                    if (firstDate.after(status.getDateIn())) {
+                        // Если нашли перезод раньше нынешнего, то считаем его первым в цепочке
+                        firstDate = status.getDateIn();
+                        firstColumnId = columnId;
+                    }
+                }
             }
         }
 
@@ -214,7 +233,8 @@ public class BoardIssue {
                 }
             }
 
-            if (startOfBlockedTimePeriod != null) blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
+            if (startOfBlockedTimePeriod != null)
+                blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
         }
     }
 }

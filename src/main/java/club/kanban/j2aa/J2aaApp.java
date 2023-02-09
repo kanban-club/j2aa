@@ -24,7 +24,7 @@ import java.util.jar.Manifest;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
-public class J2aa {
+public class J2aaApp {
     public static final String VERSION_KEY = "version";
     public static final String APP_CMD_LINE = "java -jar j2aa.jar";
     public static final String JVM_OPTIONS_FILE = "jvm.config";
@@ -81,7 +81,7 @@ public class J2aa {
         // TODO: place custom component creation code here
     }
 
-    public J2aa() {
+    public J2aaApp() {
         super();
         appFrame = new JFrame();
 
@@ -165,7 +165,7 @@ public class J2aa {
     }
 
     public static void main(String[] args) {
-        new J2aa().run(args);
+        new J2aaApp().run(args);
     }
 
     public void run(String[] args) {
@@ -308,7 +308,7 @@ public class J2aa {
         return null;
     }
 
-    public void setData(J2aa data) {
+    public void setData(J2aaApp data) {
         fBoardURL.setText(data.getBoardUrl());
         fUsername.setText(data.getUserName());
         fOutputFileName.setText(data.getOutputFileName());
@@ -316,7 +316,7 @@ public class J2aa {
         fPassword.setText(data.getPassword());
     }
 
-    public void getData(J2aa data) {
+    public void getData(J2aaApp data) {
         data.setBoardUrl(fBoardURL.getText());
         data.setUserName(fUsername.getText());
         data.setOutputFileName(fOutputFileName.getText());
