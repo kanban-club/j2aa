@@ -56,11 +56,10 @@ public class Board extends net.rcarz.jiraclient.agile.Board {
 
         Map<String, String> params = new HashMap<>();
         params.put("expand", "changelog");
+        params.put("fields", String.join(",", BoardIssue.getHttpFields()));
 
         if (jqlSubFilter != null)
             params.put("jql", jqlSubFilter);
-
-        params.put("fields", String.join(",", BoardIssue.getHttpFields()));
 
         if (maxResults > 0)
             params.put("maxResults", Integer.toString(maxResults));

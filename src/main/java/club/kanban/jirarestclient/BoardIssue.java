@@ -55,7 +55,7 @@ public class BoardIssue {
             }
         }
 
-        //Считываем дополнительыне поля для Issue
+        //Считываем дополнительные поля для Issue
         boardIssue.attributes = new LinkedHashMap<>();
 
         boardIssue.attributes.put("Project", issue.getKey().substring(0, issue.getKey().indexOf("-"))); // project key: issue.getProject.getKey()
