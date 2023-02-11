@@ -7,7 +7,10 @@ import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import lombok.Getter;
 import lombok.Setter;
-import net.rcarz.jiraclient.*;
+import net.rcarz.jiraclient.BasicCredentials;
+import net.rcarz.jiraclient.JiraClient;
+import net.rcarz.jiraclient.JiraException;
+import net.rcarz.jiraclient.RestException;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
 
@@ -19,8 +22,8 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -212,6 +215,17 @@ public class J2aaApp {
         File defaultProfile = new File(DEFAULT_PROFILE);
         if (defaultProfile.exists())
             readConnProfile(defaultProfile);
+        else {
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream(DEFAULT_PROFILE);
+            Properties p = new Properties();
+            p.loadFromXML(inputStream);
+            setBoardUrl(p.getProperty(KEY_BOARD_URL));
+            setUserName(p.getProperty(KEY_USER_NAME));
+            setPassword(p.getProperty(KEY_PASSWORD));
+            setJqlSubFilter(p.getProperty(KEY_JQL_SUB_FILTER));
+            setOutputFileName(p.getProperty(KEY_OUTPUT_FILE));
+            setData(this);
+        }
     }
 
     private void readJVMOptions(File file) {
@@ -253,10 +267,9 @@ public class J2aaApp {
                     (this.getBoardUrl() == null || this.getBoardUrl().trim().equals("") ? " " + KEY_BOARD_URL : "") +
                             (this.getUserName() == null || getUserName().trim().equals("") ? " " + KEY_USER_NAME : "")
             ));
-
-        this.getAppFrame().setTitle(getAppTitle() + " [" + file.getName() + "]");
         setData(this);
         setConnProfile(file);
+        this.getAppFrame().setTitle(getAppTitle() + " [" + file.getName() + "]");
     }
 
     private void writeConnProfile(File file) throws IOException {
