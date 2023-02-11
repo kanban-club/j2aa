@@ -44,7 +44,7 @@ public abstract class AgileResource {
     public static final String ATTR_SELF = "self";
 
 //    public static final String RESOURCE_URI = "/rest/agile/1.0/";
-    public static final String RESOURCE_URI = "/rest/agile/latest/";
+    public static final String RESOURCE_URI = "rest/agile/latest/";
 
     private RestClient restclient;
     private long id = 0;
