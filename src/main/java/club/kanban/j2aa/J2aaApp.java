@@ -383,7 +383,7 @@ public class J2aaApp {
 // Проверяем наличие выходного файла на диске
         File outputFile = new File(getOutputFileName());
         if (outputFile.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
-            showMessageDialog(getAppFrame(), "Конвертайция остановлена", "Информация", INFORMATION_MESSAGE);
+            showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
             return;
         }
 
