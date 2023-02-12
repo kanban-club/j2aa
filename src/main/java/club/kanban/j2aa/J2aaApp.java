@@ -106,13 +106,6 @@ public class J2aaApp {
     public J2aaApp() {
         super();
 
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
         appFrame = new JFrame();
         appFrame.setContentPane(rootPanel);
         appFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -183,6 +176,14 @@ public class J2aaApp {
     }
 
     public static void main(String[] args) {
+
+//        try {
+//            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            System.exit(1);
+//        }
+
         ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
 
         EventQueue.invokeLater(() -> {
