@@ -17,5 +17,5 @@
     <entry key="output_file_name">output.csv</entry>
     
     <!-- Пароль от username. по-умолчанию не задан его можно указат в приложении -->
-    <entry key="password"></entry>
+    <entry key="password"/>
 </properties>

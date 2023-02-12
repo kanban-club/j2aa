@@ -11,34 +11,37 @@ import net.rcarz.jiraclient.BasicCredentials;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestException;
-import org.apache.commons.cli.*;
 import org.apache.commons.io.FilenameUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.PropertySource;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.*;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
+@SpringBootApplication
+@PropertySource("default_profile.xml")
 public class J2aaApp {
     public static final String VERSION_KEY = "build.version";
-    public static final String APP_CMD_LINE = "java -jar j2aa.jar";
-    public static final String JVM_OPTIONS_FILE = "jvm.config";
-    public static final String PROFILE_ARG = "profile";
 
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
-    public static final String DEFAULT_PROFILE = "default_profile.xml";
 
     public static final String KEY_BOARD_URL = "board_url";
     public static final String KEY_USER_NAME = "user_name";
@@ -48,28 +51,41 @@ public class J2aaApp {
 
     @Getter
     private final JFrame appFrame;
-    @Getter
-    @Setter
-    private String appTitle;
+
+    @Value("${" + KEY_BOARD_URL + ":}")
     @Getter
     @Setter
     private String boardUrl;
+
+    @Value("${" + KEY_USER_NAME + ":}")
     @Getter
     @Setter
     private String userName;
+
+    @Value("${" + KEY_PASSWORD + ":}")
     @Getter
     @Setter
     private String password;
+
+    @Value("${" + KEY_OUTPUT_FILE + ":}")
     @Getter
     @Setter
     private String outputFileName;
+
+    @Value("${" + KEY_JQL_SUB_FILTER + ":}")
     @Getter
     @Setter
     private String jqlSubFilter;
+
     @Getter
     @Setter
     private File connProfile;
+    @Value("${user.dir}")
     private String lastConnFileDir;
+
+    @Value("${" + VERSION_KEY + ":}")
+    @Getter
+    private String version;
 
     private JPanel rootPanel;
     private JTextField fBoardURL;
@@ -89,24 +105,19 @@ public class J2aaApp {
 
     public J2aaApp() {
         super();
-        appFrame = new JFrame();
 
         try {
-            String version = getVersionFromProperties();
-
-            if (version != null)
-                setAppTitle(DEFAULT_APP_TITLE + " v" + version);
-            else
-                setAppTitle(DEFAULT_APP_TITLE);
-        } catch (Exception ignored) {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
         }
 
-        appFrame.setTitle(getAppTitle());
+        appFrame = new JFrame();
         appFrame.setContentPane(rootPanel);
         appFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         appFrame.setPreferredSize(new Dimension(800, 450));
         appFrame.pack();
-        appFrame.setVisible(true);
         appFrame.getRootPane().setDefaultButton(startButton);
 
         startButton.addActionListener(actionEvent -> {
@@ -172,76 +183,14 @@ public class J2aaApp {
     }
 
     public static void main(String[] args) {
-        new J2aaApp().run(args);
-    }
+        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
 
-    public void run(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        File jvmOptionsFile = new File(JVM_OPTIONS_FILE);
-        if (jvmOptionsFile.exists()) readJVMOptions(jvmOptionsFile);
-
-        try {
-            parseCommandLine(args);
-        } catch (ParseException e) {
-            showMessageDialog(getAppFrame(), e.getMessage(), "Ошибка", ERROR_MESSAGE);
-            System.exit(1);
-        } /* catch (IOException e) {
-            showMessageDialog(getAppFrame(), e.getMessage(), "Ошибка", ERROR_MESSAGE);
-        }*/
-
-        lastConnFileDir = System.getProperty("user.dir");
-        try {
-            if ((getConnProfile() != null && !getConnProfile().getName().trim().isEmpty()) && getConnProfile().exists())
-                readConnProfile(getConnProfile());
-            else {
-                setDefaults();
-            }
-
-            if (getConnProfile() != null)
-                lastConnFileDir = connProfile.getAbsoluteFile().getParent();
-        } catch (IOException e) {
-            showMessageDialog(getAppFrame(), e.getMessage(), "Ошибка", ERROR_MESSAGE);
-            setConnProfile(null);
-        }
-    }
-
-    private void setDefaults() throws IOException {
-        File defaultProfile = new File(DEFAULT_PROFILE);
-        if (defaultProfile.exists())
-            readConnProfile(defaultProfile);
-        else {
-            InputStream inputStream = getClass().getClassLoader().getResourceAsStream(DEFAULT_PROFILE);
-            Properties p = new Properties();
-            p.loadFromXML(inputStream);
-            setBoardUrl(p.getProperty(KEY_BOARD_URL));
-            setUserName(p.getProperty(KEY_USER_NAME));
-            setPassword(p.getProperty(KEY_PASSWORD));
-            setJqlSubFilter(p.getProperty(KEY_JQL_SUB_FILTER));
-            setOutputFileName(p.getProperty(KEY_OUTPUT_FILE));
-            setData(this);
-        }
-    }
-
-    private void readJVMOptions(File file) {
-        try {
-            FileInputStream fis = new FileInputStream(file.getAbsolutePath());
-            Properties p = new Properties();
-            if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml"))
-                p.loadFromXML(fis);
-            else
-                p.load(fis);
-
-            for (Object key : p.keySet()) {
-                System.setProperty(key.toString(), p.getProperty(key.toString()));
-            }
-        } catch (Exception ignored) {
-        }
+        EventQueue.invokeLater(() -> {
+            J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
+            j2aaApp.setData(j2aaApp);
+            j2aaApp.setAppTitle();
+            j2aaApp.getAppFrame().setVisible(true);
+        });
     }
 
     private void readConnProfile(File file) throws IOException {
@@ -269,7 +218,7 @@ public class J2aaApp {
             ));
         setData(this);
         setConnProfile(file);
-        this.getAppFrame().setTitle(getAppTitle() + " [" + file.getName() + "]");
+        setAppTitle();
     }
 
     private void writeConnProfile(File file) throws IOException {
@@ -290,50 +239,8 @@ public class J2aaApp {
 
         fos.flush();
         fos.close();
-        this.getAppFrame().setTitle(getAppTitle() + " [" + file.getName() + "]");
         setConnProfile(file);
-    }
-
-    private void parseCommandLine(String[] args) throws ParseException {
-        Options options = new Options();
-        Option argument;
-        argument = new Option("profile", true, "Connection profile (.xml)");
-        options.addOption(argument);
-        CommandLineParser parser = new DefaultParser();
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.setOptionComparator(null);
-        CommandLine cmd;
-        try {
-            cmd = parser.parse(options, args);
-            String profileName = cmd.getOptionValue(PROFILE_ARG);
-            if (profileName != null)
-                setConnProfile(new File(profileName));
-        } catch (ParseException e) {
-            StringWriter writer = new StringWriter();
-            formatter.printHelp(new PrintWriter(writer), 800, APP_CMD_LINE, null, options, 0, 5, null, true);
-            throw new ParseException("Ошибка: " + e.getMessage() + "\n" + writer);
-        }
-    }
-
-    private String getVersionFromManifest() throws IOException {
-        InputStream manifestStream = getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF");
-        if (manifestStream != null) {
-            Manifest manifest = new Manifest(manifestStream);
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue(VERSION_KEY);
-        }
-        return null;
-    }
-
-    private String getVersionFromProperties() throws Exception {
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
-        String result = null;
-        if (inputStream != null) {
-            Properties properties = new Properties();
-            properties.load(inputStream);
-            result = properties.getProperty(VERSION_KEY);
-        }
-        return result;
+        setAppTitle();
     }
 
     public void setData(J2aaApp data) {
@@ -458,6 +365,13 @@ public class J2aaApp {
             startButton.setEnabled(true);
             startButton.update(startButton.getGraphics());
         }
+    }
+
+    public void setAppTitle() {
+        String newTitle = DEFAULT_APP_TITLE
+                + (!version.isEmpty() ? " v" + version : "")
+                + (connProfile != null ? " [" + connProfile.getName() + "]" : "");
+        getAppFrame().setTitle(newTitle);
     }
 
     {
