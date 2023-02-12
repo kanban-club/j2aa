@@ -29,24 +29,6 @@ public class Board extends net.rcarz.jiraclient.agile.Board {
         return board;
     }
 
-//    public BoardConfig getBoardConfig() throws JiraException {
-//        return get(getRestclient(), BoardConfig.class, RESOURCE_URI + "board/" + getId() + "/configuration");
-//    }
-
-//    public List<Issue> getAllIssuesForBoard(
-//            String jqlSubFilter, List<String> fields, Map<String, String> extraParams,
-//            @Nullable ProgressMonitor progressMonitor) throws JiraException {
-//        Map<String, String> params = new HashMap<>();
-//
-//        if (jqlSubFilter != null) params.put("jql", jqlSubFilter);
-//        if (fields != null) params.put("fields", String.join(",", fields));
-//        if (extraParams != null) params.putAll(extraParams);
-//
-//        String url = RESOURCE_URI + "board/" + getId() + "/issue";
-//
-//        return AgileResource.list(getRestclient(), Issue.class, url, "issues", params, progressMonitor);
-//    }
-
     public BoardIssuesSet getBoardIssuesSet(String jqlSubFilter,
                                             int startAt,
                                             int maxResults) throws JiraException {

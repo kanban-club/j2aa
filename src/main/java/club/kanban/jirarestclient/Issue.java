@@ -54,10 +54,4 @@ public class Issue extends net.rcarz.jiraclient.agile.Issue {
             }
         }
     }
-
-//    public static Issue get(RestClient restClient, String key) throws JiraException {
-//        return AgileResource.get(restClient, Issue.class, RESOURCE_URI + "issue/" + key, new HashMap<String, String>() {{
-//            put("expand", "changelog");
-//        }});
-//    }
 }

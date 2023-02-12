@@ -108,11 +108,4 @@
         </plugins>
     </build>
 
-    <!--    <scm>-->
-    <!--        <connection>scm:git:https://github.com/xor123/j2aa.git</connection>-->
-    <!--        <developerConnection>scm:git:https://github.com/xor123/j2aa.git</developerConnection>-->
-    <!--        <tag>HEAD</tag>-->
-    <!--        <url>https://github.com/xor123/j2aa</url>-->
-    <!--    </scm>-->
-
 </project>
