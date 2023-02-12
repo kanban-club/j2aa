@@ -24,7 +24,7 @@ public class J2aaService {
             @RequestParam(defaultValue = "0") int startAt,
             @RequestParam(defaultValue = "0") int maxResults,
             @RequestParam(defaultValue = "22232") int boardId,
-            @RequestParam(defaultValue = "createdDate >= '2022/01/01'") String jqlSubFilter,
+            @RequestParam(defaultValue = "createdDate >= -12w") String jqlSubFilter,
             @RequestParam(defaultValue = "http://jiraserver") String jiraUrl,
             String username,
             String password

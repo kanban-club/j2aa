@@ -39,7 +39,6 @@ import static javax.swing.JOptionPane.*;
 @PropertySource("default_profile.xml")
 public class J2aaApp {
     public static final String VERSION_KEY = "build.version";
-
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
 
