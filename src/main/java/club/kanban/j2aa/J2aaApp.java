@@ -36,7 +36,7 @@ import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
 @SpringBootApplication
-@PropertySource("default_profile.xml")
+@PropertySource("classpath:default_profile.xml")
 public class J2aaApp {
     public static final String VERSION_KEY = "build.version";
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
