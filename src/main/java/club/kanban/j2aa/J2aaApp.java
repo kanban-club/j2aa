@@ -98,10 +98,6 @@ public class J2aaApp {
     private JButton saveSettingsButton;
     private JPasswordField fPassword;
 
-    private void createUIComponents() {
-        // TODO: place custom component creation code here
-    }
-
     public J2aaApp() {
         super();
 
@@ -282,7 +278,7 @@ public class J2aaApp {
             String query = url.getQuery();
             if (query != null && !query.trim().isEmpty()) {
 //                String[] tokens = query.split("[\\&]");
-                String[] tokens = query.split("[&]");
+                String[] tokens = query.split("&");
                 for (String token : tokens) {
                     int i = token.indexOf("=");
                     if (i > 0 && token.substring(0, i).trim().equalsIgnoreCase("rapidView")) {

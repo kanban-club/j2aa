@@ -27,6 +27,6 @@ public class BoardConfig extends AgileResource {
         JSONObject columnConfig = (JSONObject) json.get("columnConfig");
         boardColumns = getResourceArray(BoardColumn.class, columnConfig, getRestClient(), "columns");
         for (int i = 0; i < boardColumns.size(); i++)
-            boardColumns.get(i).setId(/*12345 +*/ (long) i); //Generate virtual id for each column
+            boardColumns.get(i).setId(i); //Generate virtual id for each column
     }
 }

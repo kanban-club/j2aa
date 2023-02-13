@@ -173,12 +173,6 @@ public class BoardIssue {
         Date firstDate = null;
         Long firstColumnId = null;
         for (Status status : statuses) {
-//            Long columnId = status2Column.get(status.getStatusId());
-//            if (columnId != null) {
-//                firstDate = status.getDateIn();
-//                firstColumnId = columnId;
-//                break;
-//            }
 
             Long columnId = status2Column.get(status.getStatusId());
             if (columnId != null) {
