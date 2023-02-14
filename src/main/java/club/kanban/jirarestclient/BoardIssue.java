@@ -81,7 +81,7 @@ public class BoardIssue {
         Epic epic = issue.getEpic();
         if (epic != null) {
             boardIssue.attributes.put("Epic Key", epic.getKey());
-            boardIssue.attributes.put("Epic Name", epic.getName());
+            boardIssue.attributes.put("Epic Name", CSVFormatter.formatString(epic.getName()));
         } else {
             boardIssue.attributes.put("Epic Key", "");
             boardIssue.attributes.put("Epic Name", "");
