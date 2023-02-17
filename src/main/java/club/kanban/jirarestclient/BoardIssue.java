@@ -3,10 +3,7 @@ package club.kanban.jirarestclient;
 import club.kanban.j2aaconverter.CSVFormatter;
 import club.kanban.j2aaconverter.Status;
 import lombok.Getter;
-import net.rcarz.jiraclient.agile.Epic;
 import net.rcarz.jiraclient.JiraException;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,6 +11,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class BoardIssue {
     // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
@@ -41,8 +39,8 @@ public class BoardIssue {
 
         boardIssue.key = issue.getKey();
 
-        if (SHOW_ISSUE_NAME)
-            boardIssue.name = issue.getName();
+        if (SHOW_ISSUE_NAME && issue.getSummary() != null)
+            boardIssue.name = CSVFormatter.formatString(issue.getSummary());
         else
             boardIssue.name = "";
 
@@ -50,7 +48,8 @@ public class BoardIssue {
         if (SHOW_ISSUE_LINK) {
             try {
                 URL restApiUrl = new URL(issue.getSelfURL());
-                boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+                boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
+                        + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
             } catch (MalformedURLException ignored) {
             }
         }
@@ -58,34 +57,19 @@ public class BoardIssue {
         //Считываем дополнительные поля для Issue
         boardIssue.attributes = new LinkedHashMap<>();
 
-        boardIssue.attributes.put("Project", issue.getKey().substring(0, issue.getKey().indexOf("-"))); // project key: issue.getProject.getKey()
-        boardIssue.attributes.put("Issue Type", issue.getIssueType().getName());
+        boardIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : ""); // project key: issue.getProject.getKey()
+        boardIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
         boardIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
+        boardIssue.attributes.put("Labels", issue.getLabels() != null ? CSVFormatter.formatList(issue.getLabels()) : "");
+        boardIssue.attributes.put("Components", issue.getComponents() != null ?
+                CSVFormatter.formatList(issue.getComponents()
+                        .stream()
+                        .map(JiraResource::getName)
+                        .collect(Collectors.toList())
+                ) : "");
 
-        List<String> labels = new ArrayList<>(((JSONArray) issue.getAttribute("labels")).size());
-        for (Object label : (JSONArray) issue.getAttribute("labels")) {
-            labels.add((String) label);
-        }
-        boardIssue.attributes.put("Labels", CSVFormatter.formatList(labels));
-
-        List<String> components = new ArrayList<>(5);
-        Object object = issue.getAttribute("components");
-        if (object instanceof JSONArray && ((JSONArray) object).size() > 0) {
-            for (int i = 0; i < ((JSONArray) object).size(); i++) {
-                JSONObject jsonObject = ((JSONArray) object).getJSONObject(i);
-                components.add(jsonObject.getString("name"));
-            }
-        }
-        boardIssue.attributes.put("Components", CSVFormatter.formatList(components));
-
-        Epic epic = issue.getEpic();
-        if (epic != null) {
-            boardIssue.attributes.put("Epic Key", epic.getKey());
-            boardIssue.attributes.put("Epic Name", CSVFormatter.formatString(epic.getName()));
-        } else {
-            boardIssue.attributes.put("Epic Key", "");
-            boardIssue.attributes.put("Epic Name", "");
-        }
+        boardIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
+        boardIssue.attributes.put("Epic Name", issue.getEpic() != null ? CSVFormatter.formatString(issue.getEpic().getName()) : "");
 
         boardIssue.initTransitionsLog(issue, boardConfig);
         boardIssue.initBlockedDays(issue);
@@ -102,6 +86,7 @@ public class BoardIssue {
 
         return fields;
     }
+
     private static long getDaysBetween(Date start, Date end) {
         LocalDate localStart = start.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate localEnd = end.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();

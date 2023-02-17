@@ -2,14 +2,13 @@ package club.kanban.jirarestclient;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.rcarz.jiraclient.agile.AgileResource;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
 import java.util.List;
 
-public class BoardColumn extends AgileResource {
+public class BoardColumn extends JiraResource {
 
     @Getter
     @Setter

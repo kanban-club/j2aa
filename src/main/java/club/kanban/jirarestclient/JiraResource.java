@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package net.rcarz.jiraclient.agile;
+package club.kanban.jirarestclient;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
@@ -28,8 +28,13 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.math.NumberUtils;
 
 import java.lang.reflect.Constructor;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+
+import static net.rcarz.jiraclient.Field.DATETIME_FORMAT;
 
 /**
  * A base class for Agile resources.
@@ -37,20 +42,19 @@ import java.util.List;
  * @author pldupont
  * @see "https://docs.atlassian.com/jira-software/REST/cloud/"
  */
-public abstract class AgileResource {
+public class JiraResource {
 
     public static final String ATTR_ID = "id";
     public static final String ATTR_NAME = "name";
     public static final String ATTR_SELF = "self";
 
-//    public static final String RESOURCE_URI = "/rest/agile/1.0/";
     public static final String RESOURCE_URI = "rest/agile/latest/";
 
-    private RestClient restclient;
+    private final RestClient restclient;
     private long id = 0;
     private String name;
     private String self;
-    private JSONObject attributes = new JSONObject();
+    private final JSONObject attributes = new JSONObject();
 
     /**
      * Creates a new Agile resource.
@@ -59,7 +63,7 @@ public abstract class AgileResource {
      * @param json       JSON payload
      * @throws JiraException when the retrieval fails
      */
-    public AgileResource(RestClient restclient, JSONObject json) throws JiraException {
+    public JiraResource(RestClient restclient, JSONObject json) throws JiraException {
         this.restclient = restclient;
         if (json != null) {
             deserialize(json);
@@ -75,7 +79,7 @@ public abstract class AgileResource {
      * @return a Resource instance or null if r isn't a JSONObject instance
      * @throws JiraException when the retrieval fails
      */
-    protected static <T extends AgileResource> T getResource(
+    protected static <T extends JiraResource> T getResource(
             Class<T> type, Object r, RestClient restclient) throws JiraException {
 
         if (!(r instanceof JSONObject)) {
@@ -106,7 +110,7 @@ public abstract class AgileResource {
      * @return a list of Resources found in ra
      * @throws JiraException when the retrieval fails
      */
-    protected static <T extends AgileResource> List<T> getResourceArray(
+    protected static <T extends JiraResource> List<T> getResourceArray(
             Class<T> type, Object ra, RestClient restclient, String listName) throws JiraException {
         if (!(ra instanceof JSONObject)) {
             throw new JiraException("JSON payload is malformed");
@@ -139,7 +143,7 @@ public abstract class AgileResource {
      * @return a list of boards
      * @throws JiraException when the retrieval fails
      */
-    static <T extends AgileResource> List<T> list(
+    static <T extends JiraResource> List<T> list(
             RestClient restclient, Class<T> type, String url) throws JiraException {
         return list(restclient, type, url, "values");
     }
@@ -154,7 +158,7 @@ public abstract class AgileResource {
      * @return a list of boards
      * @throws JiraException when the retrieval fails
      */
-    static <T extends AgileResource> List<T> list(
+    static <T extends JiraResource> List<T> list(
             RestClient restclient, Class<T> type, String url, String listName) throws JiraException {
 
         JSON result;
@@ -179,7 +183,7 @@ public abstract class AgileResource {
      * @return a list of boards
      * @throws JiraException when the retrieval fails
      */
-    protected static <T extends AgileResource> T get(RestClient restclient, Class<T> type, String url) throws JiraException {
+    protected static <T extends JiraResource> T get(RestClient restclient, Class<T> type, String url) throws JiraException {
 
         JSON result;
         try {
@@ -205,7 +209,7 @@ public abstract class AgileResource {
      * @return The list of resources if present.
      * @throws JiraException when the retrieval fails
      */
-    <T extends AgileResource> List<T> getSubResourceArray(
+    <T extends JiraResource> List<T> getSubResourceArray(
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         List<T> result = null;
         if (subJson.containsKey(resourceName)) {
@@ -224,7 +228,7 @@ public abstract class AgileResource {
      * @return The resource if present.
      * @throws JiraException when the retrieval fails
      */
-    <T extends AgileResource> T getSubResource(
+    <T extends JiraResource> T getSubResource(
             Class<T> type, JSONObject subJson, String resourceName) throws JiraException {
         T result = null;
         if (subJson.containsKey(resourceName) && !subJson.get(resourceName).equals("null")) {
@@ -301,14 +305,25 @@ public abstract class AgileResource {
         attributes.putAll(json);
     }
 
-    long getLong(Object o) {
+    public static long getLong(Object o) {
         if (o instanceof Integer || o instanceof Long) {
-            return Field_v0_6.getLong(o);
+            return Field.getInteger(o);
         } else if (o instanceof String && NumberUtils.isDigits((String) o)) {
             return NumberUtils.toLong((String) o, 0L);
         } else {
             return 0L;
         }
+    }
+
+    public static Date getDateTime(Object d) {
+        Date result = null;
+
+        if (d instanceof String) {
+            SimpleDateFormat df = new SimpleDateFormat(DATETIME_FORMAT);
+            result = df.parse((String) d, new ParsePosition(0));
+        }
+
+        return result;
     }
 
     @Override

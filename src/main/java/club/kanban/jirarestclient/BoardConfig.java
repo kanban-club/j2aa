@@ -1,7 +1,6 @@
 package club.kanban.jirarestclient;
 
 import lombok.Getter;
-import net.rcarz.jiraclient.agile.AgileResource;
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
@@ -9,7 +8,7 @@ import net.sf.json.JSONObject;
 
 import java.util.List;
 
-public class BoardConfig extends AgileResource {
+public class BoardConfig extends JiraResource {
     @Getter
     private String type;
     @Getter

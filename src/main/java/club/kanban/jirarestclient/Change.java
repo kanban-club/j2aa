@@ -1,7 +1,6 @@
 package club.kanban.jirarestclient;
 
 import lombok.Getter;
-import net.rcarz.jiraclient.agile.Field_v0_6;
 import net.sf.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +27,7 @@ public class Change {
     }
 
     public static Change get(JSONObject history, JSONObject historyItem, long flags) {
-        Date date = Field_v0_6.getDateTime(history.get("created"));
+        Date date = JiraResource.getDateTime(history.get("created"));
         Long from = (flags & SKIP_FROM) != 0 ? null : historyItem.getLong("from");
         String fromString = (flags & SKIP_FROM_STRING) != 0 ? null : historyItem.getString("fromString");
         Long to = (flags & SKIP_TO) != 0 ? null : historyItem.getLong("to");

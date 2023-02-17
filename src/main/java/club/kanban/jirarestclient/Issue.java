@@ -1,16 +1,36 @@
 package club.kanban.jirarestclient;
 
 import lombok.Getter;
+import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
-public class Issue extends net.rcarz.jiraclient.agile.Issue {
-
+public class Issue extends JiraResource {
+    @Getter
+    private String key;
+    @Getter
+    private String summary;
+    @Getter
+    private Date created;
+    @Getter
+    private JiraResource priority;
+    @Getter
+    private JiraResource status;
+    @Getter
+    private JiraResource issueType;
+    @Getter
+    private Issue epic;
+    @Getter
+    private List<String> labels;
+    @Getter
+    private List<JiraResource> components;
     @Getter
     List<Change> statusChanges;
     @Getter
@@ -29,7 +49,57 @@ public class Issue extends net.rcarz.jiraclient.agile.Issue {
     @Override
     protected void deserialize(JSONObject json) throws JiraException {
         super.deserialize(json);
+        key = Field.getString(json.get("key"));
 
+        // Extract from "fields" sub JSONObject
+        if (json.containsKey("fields")) {
+            JSONObject jsonFields = (JSONObject) json.get("fields");
+
+            Iterator<String> keys = jsonFields.keys();
+            while (keys.hasNext()) {
+                String jsonKey = keys.next();
+                switch (jsonKey) {
+                    case "summary":
+                        summary = Field.getString(jsonFields.get(jsonKey));
+                        break;
+                    case "created":
+                        created = getDateTime(jsonFields.get(jsonKey));
+                        break;
+                    case "priority":
+                        priority = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                        break;
+                    case "status":
+                        status = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                        break;
+                    case "issuetype":
+                        issueType = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                        break;
+                    case "epic":
+                        epic = new Issue(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                        break;
+                    case "labels":
+                        labels = new ArrayList<>(((JSONArray) jsonFields.get(jsonKey)).size());
+                        for (Object label : (JSONArray) jsonFields.get(jsonKey)) {
+                            labels.add((String) label);
+                        }
+                        break;
+                    case "components":
+                        Object objArray = jsonFields.get(jsonKey);
+                        if (((JSONArray) objArray).size() > 0) {
+                            components = new ArrayList<>(((JSONArray) objArray).size());
+                            for (int i = 0; i < ((JSONArray) objArray).size(); i++) {
+                                JiraResource component = new JiraResource(getRestClient(), ((JSONArray) objArray).getJSONObject(i));
+                                components.add(component);
+                            }
+                        }
+                        break;
+                }
+            }
+
+            addAttributes(jsonFields);
+        }
+
+        // Extract Statuses & Blockers
         statusChanges = new ArrayList<>(10);
         flaggedChanges = new ArrayList<>(10);
 

@@ -1,11 +1,10 @@
 package club.kanban.jirarestclient;
 
-import net.rcarz.jiraclient.agile.AgileResource;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONObject;
 
-public class BoardColumnStatus extends AgileResource {
+public class BoardColumnStatus extends JiraResource {
 
     /**
      * Creates a new Agile resource.

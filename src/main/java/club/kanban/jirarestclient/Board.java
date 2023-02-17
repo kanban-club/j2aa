@@ -9,7 +9,7 @@ import net.sf.json.JSONObject;
 
 import java.util.*;
 
-public class Board extends net.rcarz.jiraclient.agile.Board {
+public class Board extends JiraResource {
     @Getter @Setter
     private BoardConfig boardConfig;
 
@@ -59,7 +59,7 @@ public class Board extends net.rcarz.jiraclient.agile.Board {
                 try {
                     BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
                     boardIssues.add(boardIssue);
-                } catch (JiraException e) {
+                } catch (Exception e) {
                     System.out.printf("%s: %s\n", issue.getKey(), e.getMessage());
                 }
             }
