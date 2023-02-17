@@ -1,5 +1,6 @@
 package club.kanban.j2aa;
 
+import club.kanban.j2aaconverter.ExportableIssue;
 import club.kanban.jirarestclient.Board;
 import club.kanban.jirarestclient.BoardIssuesSet;
 import net.rcarz.jiraclient.BasicCredentials;
@@ -31,6 +32,6 @@ public class J2aaService {
     ) throws JiraException {
         JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(username, password));
         Board board = Board.get(jiraClient.getRestClient(), boardId);
-        return board.getBoardIssuesSet(jqlSubFilter, startAt, maxResults);
+        return board.getBoardIssuesSet(jqlSubFilter, startAt, maxResults, ExportableIssue.getHttpFields());
     }
 }

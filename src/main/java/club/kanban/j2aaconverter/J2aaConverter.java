@@ -21,7 +21,7 @@ import static club.kanban.j2aaconverter.CSVFormatter.formatString;
 public class J2aaConverter {
     private BoardConfig boardConfig;
     @Getter
-    private List<BoardIssue> boardIssues;
+    private List<ExportableIssue> exportableIssues;
 
     /**
      * Get set of issues for the board
@@ -35,15 +35,28 @@ public class J2aaConverter {
         this.boardConfig = board.getBoardConfig();
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
+        exportableIssues = null;
         do {
-            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0);
+            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, ExportableIssue.getHttpFields());
 
-            if (boardIssuesSet.getBoardIssues().size() > 0) {
-                if (boardIssues == null)
-                    boardIssues = new ArrayList<>(boardIssuesSet.getTotal());
-                boardIssues.addAll(boardIssuesSet.getBoardIssues());
+            if (boardIssuesSet.getIssues().size() > 0) {
+                if (exportableIssues == null)
+                    exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
+
+                // Map issue's changelog to board columns
+                List<ExportableIssue> exportableIssuesSet= new ArrayList<>(boardIssuesSet.getIssues().size());
+                for (Issue issue : boardIssuesSet.getIssues()) {
+                    try {
+                        ExportableIssue exportableIssue = ExportableIssue.createFromIssue(issue, boardConfig);
+                        exportableIssuesSet.add(exportableIssue);
+                    } catch (Exception e) {
+                        System.out.printf("%s: %s\n", issue.getKey(), e.getMessage());
+                    }
+                }
+
+                exportableIssues.addAll(exportableIssuesSet);
                 startAt += boardIssuesSet.getMaxResults();
-                progressMonitor.update(boardIssues.size(), boardIssuesSet.getTotal());
+                progressMonitor.update(exportableIssues.size(), boardIssuesSet.getTotal());
             }
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
@@ -54,15 +67,15 @@ public class J2aaConverter {
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
 
-            for (int i = 0; i < boardIssues.size(); i++) {
-                BoardIssue boardIssue = boardIssues.get(i);
+            for (int i = 0; i < exportableIssues.size(); i++) {
+                ExportableIssue exportableIssue = exportableIssues.get(i);
 
                 if (i == 0) {
                     // запись всего заголовка
                     String header = "ID,Link,Name";
                     for (BoardColumn boardColumn : boardConfig.getBoardColumns())
                         header = header.concat("," + formatString(boardColumn.getName()));
-                    header += "," + String.join(",", boardIssue.getAttributes().keySet());
+                    header += "," + String.join(",", exportableIssue.getAttributes().keySet());
 
                     writer.write(header);
                 }
@@ -72,14 +85,14 @@ public class J2aaConverter {
                 // запись строчек
                 String row;
 
-                row = boardIssue.getKey() + "," + boardIssue.getLink() + "," + formatString(boardIssue.getName());
+                row = exportableIssue.getKey() + "," + exportableIssue.getLink() + "," + exportableIssue.getName();
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
-                    Date date = boardIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
+                    Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
                     row = row.concat("," + (date != null ? df.format(date) : ""));
                 }
 
-                row += "," + String.join(",", new ArrayList<>(boardIssue.getAttributes().values())
+                row += "," + String.join(",", new ArrayList<>(exportableIssue.getAttributes().values())
                 );
 
                 writer.append('\n');

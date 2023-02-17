@@ -92,7 +92,6 @@ public class J2aaApp {
     @Value("${" + VERSION_KEY + ":}")
     @Getter
     private String version;
-
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;
@@ -321,10 +320,10 @@ public class J2aaApp {
                 fLog.update(fLog.getGraphics());
             });
 
-            if (converter.getBoardIssues().size() > 0) {
+            if (converter.getExportableIssues().size() > 0) {
                 Date endDate = new Date();
                 long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
-                fLog.append(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек\n", converter.getBoardIssues().size(), timeInSec, (1.0 * converter.getBoardIssues().size()) / timeInSec));
+                fLog.append(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек\n", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
                 fLog.update(fLog.getGraphics());
 
                 // экспортируем данные в csv файл

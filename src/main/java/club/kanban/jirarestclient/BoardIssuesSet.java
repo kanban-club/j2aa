@@ -13,10 +13,10 @@ public class BoardIssuesSet {
     @Getter
     private final int total;
     @Getter
-    List<BoardIssue> boardIssues;
+    List<Issue> issues;
 
-    public BoardIssuesSet(List<BoardIssue> boardIssues, int total, int maxResults) {
-        this.boardIssues = boardIssues;
+    public BoardIssuesSet(List<Issue> issues, int total, int maxResults) {
+        this.issues = issues;
         this.total = total;
         this.maxResults = maxResults;
     }

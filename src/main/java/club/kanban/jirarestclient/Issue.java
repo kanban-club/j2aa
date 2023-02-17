@@ -32,9 +32,9 @@ public class Issue extends JiraResource {
     @Getter
     private List<JiraResource> components;
     @Getter
-    List<Change> statusChanges;
+    List<ChangeLogItem> statusChanges;
     @Getter
-    List<Change> flaggedChanges;
+    List<ChangeLogItem> flaggedChanges;
 
     /**
      * Creates a new Agile Issue resource.
@@ -115,9 +115,9 @@ public class Issue extends JiraResource {
                             JSONObject item = items.getJSONObject(i);
 
                             if (item.getString("field").equals("status"))
-                                statusChanges.add(Change.get(history, item, 0));
+                                statusChanges.add(ChangeLogItem.get(history, item, 0));
                             else if ((item.getString("field")).equals("Flagged"))
-                                flaggedChanges.add(Change.get(history, item, Change.SKIP_FROM | Change.SKIP_TO));
+                                flaggedChanges.add(ChangeLogItem.get(history, item, ChangeLogItem.SKIP_FROM | ChangeLogItem.SKIP_TO));
                         }
                     }
                 }

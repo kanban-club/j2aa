@@ -1,5 +1,6 @@
 package club.kanban.jirarestclient;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
@@ -11,8 +12,8 @@ import java.util.List;
 public class BoardColumn extends JiraResource {
 
     @Getter
-    @Setter
-    private long id;
+    @Setter(value = AccessLevel.PROTECTED)
+    protected long id;
     @Getter
     private List<BoardColumnStatus> statuses;
 

@@ -1,7 +1,6 @@
-package club.kanban.jirarestclient;
+package club.kanban.j2aaconverter;
 
-import club.kanban.j2aaconverter.CSVFormatter;
-import club.kanban.j2aaconverter.Status;
+import club.kanban.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
 
@@ -13,7 +12,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class BoardIssue {
+public class ExportableIssue {
     // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
     // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
     private static final boolean USE_MAX_COLUMN = false;
@@ -34,46 +33,46 @@ public class BoardIssue {
     @Getter
     private Long blockedDays;
 
-    public static BoardIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
-        BoardIssue boardIssue = new BoardIssue();
+    public static ExportableIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
+        ExportableIssue exportableIssue = new ExportableIssue();
 
-        boardIssue.key = issue.getKey();
+        exportableIssue.key = issue.getKey();
 
         if (SHOW_ISSUE_NAME && issue.getSummary() != null)
-            boardIssue.name = CSVFormatter.formatString(issue.getSummary());
+            exportableIssue.name = CSVFormatter.formatString(issue.getSummary());
         else
-            boardIssue.name = "";
+            exportableIssue.name = "";
 
-        boardIssue.link = "";
+        exportableIssue.link = "";
         if (SHOW_ISSUE_LINK) {
             try {
                 URL restApiUrl = new URL(issue.getSelfURL());
-                boardIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
+                exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
                         + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
             } catch (MalformedURLException ignored) {
             }
         }
 
         //Считываем дополнительные поля для Issue
-        boardIssue.attributes = new LinkedHashMap<>();
+        exportableIssue.attributes = new LinkedHashMap<>();
 
-        boardIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : ""); // project key: issue.getProject.getKey()
-        boardIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
-        boardIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
-        boardIssue.attributes.put("Labels", issue.getLabels() != null ? CSVFormatter.formatList(issue.getLabels()) : "");
-        boardIssue.attributes.put("Components", issue.getComponents() != null ?
+        exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : ""); // project key: issue.getProject.getKey()
+        exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
+        exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
+        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? CSVFormatter.formatList(issue.getLabels()) : "");
+        exportableIssue.attributes.put("Components", issue.getComponents() != null ?
                 CSVFormatter.formatList(issue.getComponents()
                         .stream()
                         .map(JiraResource::getName)
                         .collect(Collectors.toList())
                 ) : "");
 
-        boardIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
-        boardIssue.attributes.put("Epic Name", issue.getEpic() != null ? CSVFormatter.formatString(issue.getEpic().getName()) : "");
+        exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
+        exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? CSVFormatter.formatString(issue.getEpic().getName()) : "");
 
-        boardIssue.initTransitionsLog(issue, boardConfig);
-        boardIssue.initBlockedDays(issue);
-        return boardIssue;
+        exportableIssue.initTransitionsLog(issue, boardConfig);
+        exportableIssue.initBlockedDays(issue);
+        return exportableIssue;
     }
 
     public static List<String> getHttpFields() {
@@ -95,8 +94,8 @@ public class BoardIssue {
 
     private void initTransitionsLog(Issue issue, BoardConfig boardConfig) throws JiraException {
         // 1.Отсортировать переходы статусов по времени
-        List<Change> statusChanges = issue.getStatusChanges();
-        statusChanges.sort(Comparator.comparing(Change::getDate));
+        List<ChangeLogItem> statusChanges = issue.getStatusChanges();
+        statusChanges.sort(Comparator.comparing(ChangeLogItem::getDate));
 
         // 2.Создать цепочку статусов по истории переходов
         List<Status> statuses = new ArrayList<>(20);
@@ -108,16 +107,16 @@ public class BoardIssue {
             statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
 
         // Достраиваем цепочку статусов
-        for (Change change : statusChanges) {
+        for (ChangeLogItem changeLogItem : statusChanges) {
             if (statuses.size() > 0) {
                 Status prevStatus = statuses.get(statuses.size() - 1);
-                if (prevStatus.getStatusId() == change.getFrom())
-                    prevStatus.setDateOut(change.getDate());
+                if (prevStatus.getStatusId() == changeLogItem.getFrom())
+                    prevStatus.setDateOut(changeLogItem.getDate());
                 else
                     throw new JiraException("Inconsistent statuses");
             }
 
-            Status newStatus = new Status(change.getDate(), change.getTo(), change.getToString());
+            Status newStatus = new Status(changeLogItem.getDate(), changeLogItem.getTo(), changeLogItem.getToString());
             statuses.add(newStatus);
         }
 
@@ -205,12 +204,12 @@ public class BoardIssue {
     }
 
     private void initBlockedDays(Issue issue) {
-        List<Change> flaggedChanges = issue.getFlaggedChanges();
-        flaggedChanges.sort(Comparator.comparing(Change::getDate));
+        List<ChangeLogItem> flaggedChanges = issue.getFlaggedChanges();
+        flaggedChanges.sort(Comparator.comparing(ChangeLogItem::getDate));
 
         blockedDays = (long) 0;
 
-        List<Change> statusChanges = issue.getStatusChanges();
+        List<ChangeLogItem> statusChanges = issue.getStatusChanges();
 
         if (statusChanges != null && statusChanges.size() > 0) {
             Date startWFDate = statusChanges.get(0).getDate();
@@ -218,7 +217,7 @@ public class BoardIssue {
 
             Date startOfBlockedTimePeriod = null;
 
-            for (Change fc : flaggedChanges) {
+            for (ChangeLogItem fc : flaggedChanges) {
                 if (fc.getDate().compareTo(startWFDate) >= 0 && fc.getDate().compareTo(endWFDate) <= 0) {
                     if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
                         if (startOfBlockedTimePeriod == null) startOfBlockedTimePeriod = fc.getDate();
