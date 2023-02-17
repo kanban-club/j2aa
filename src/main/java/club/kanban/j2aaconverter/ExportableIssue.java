@@ -59,13 +59,13 @@ public class ExportableIssue {
         exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : ""); // project key: issue.getProject.getKey()
         exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
         exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
-        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? CSVFormatter.formatList(issue.getLabels()) : "");
-        exportableIssue.attributes.put("Components", issue.getComponents() != null ?
+        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? "[" + CSVFormatter.formatList(issue.getLabels(), "|", false) +"]" : "");
+        exportableIssue.attributes.put("Components", issue.getComponents() != null ? "[" +
                 CSVFormatter.formatList(issue.getComponents()
                         .stream()
                         .map(JiraResource::getName)
                         .collect(Collectors.toList())
-                ) : "");
+                , "|", false) + "]" : "");
 
         exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
         exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? CSVFormatter.formatString(issue.getEpic().getName()) : "");

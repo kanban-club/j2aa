@@ -13,10 +13,11 @@ import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static club.kanban.j2aaconverter.CSVFormatter.formatString;
+import static club.kanban.j2aaconverter.CSVFormatter.formatList;
 
 public class J2aaConverter {
     private BoardConfig boardConfig;
@@ -25,8 +26,9 @@ public class J2aaConverter {
 
     /**
      * Get set of issues for the board
-     * @param board - Board
-     * @param jqlSubFilter - Sub Filter
+     *
+     * @param board           - Board
+     * @param jqlSubFilter    - Sub Filter
      * @param progressMonitor - Callback procedure
      * @throws JiraException - Jira Exception
      */
@@ -44,7 +46,7 @@ public class J2aaConverter {
                     exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
 
                 // Map issue's changelog to board columns
-                List<ExportableIssue> exportableIssuesSet= new ArrayList<>(boardIssuesSet.getIssues().size());
+                List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
                 for (Issue issue : boardIssuesSet.getIssues()) {
                     try {
                         ExportableIssue exportableIssue = ExportableIssue.createFromIssue(issue, boardConfig);
@@ -61,7 +63,7 @@ public class J2aaConverter {
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
 
-    public void export2File(File outputFile) throws IOException {
+    public void export2CsvFile(File outputFile) throws IOException {
         if (outputFile.getParentFile() != null)
             Files.createDirectories(outputFile.getParentFile().toPath());
 
@@ -72,32 +74,64 @@ public class J2aaConverter {
 
                 if (i == 0) {
                     // запись всего заголовка
-                    String header = "ID,Link,Name";
+                    List<String> headers = new ArrayList<>(20);
+                    headers.addAll(Arrays.asList("ID", "Link", "Name"));
                     for (BoardColumn boardColumn : boardConfig.getBoardColumns())
-                        header = header.concat("," + formatString(boardColumn.getName()));
-                    header += "," + String.join(",", exportableIssue.getAttributes().keySet());
-
-                    writer.write(header);
+                        headers.add(boardColumn.getName());
+                    headers.addAll(exportableIssue.getAttributes().keySet());
+                    writer.write(formatList(headers, ",", true));
                 }
 
                 DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 
                 // запись строчек
-                String row;
-
-                row = exportableIssue.getKey() + "," + exportableIssue.getLink() + "," + exportableIssue.getName();
+                List<String> values = new ArrayList<>(20);
+                values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
-                    row = row.concat("," + (date != null ? df.format(date) : ""));
+                    values.add(date != null ? df.format(date) : "");
+                }
+                values.addAll(exportableIssue.getAttributes().values());
+                writer.append('\n').append(formatList(values, ",", true));
+            }
+            writer.flush();
+        }
+    }
+
+    public void export2JsonFile(File outputFile) throws IOException {
+        if (outputFile.getParentFile() != null)
+            Files.createDirectories(outputFile.getParentFile().toPath());
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
+
+            for (int i = 0; i < exportableIssues.size(); i++) {
+                ExportableIssue exportableIssue = exportableIssues.get(i);
+
+                if (i == 0) {
+                    // запись всего заголовка
+                    List<String> headers = new ArrayList<>(20);
+                    headers.addAll(Arrays.asList("ID", "Link", "Name"));
+                    for (BoardColumn boardColumn : boardConfig.getBoardColumns())
+                        headers.add(boardColumn.getName());
+                    headers.addAll(exportableIssue.getAttributes().keySet());
+                    writer.write("[[" + formatList(headers, ",", true) + "]");
                 }
 
-                row += "," + String.join(",", new ArrayList<>(exportableIssue.getAttributes().values())
-                );
+                DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 
-                writer.append('\n');
-                writer.append(row);
+                // запись строчек
+                List<String> values = new ArrayList<>(20);
+                values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
+
+                for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
+                    Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
+                    values.add(date != null ? df.format(date) : "");
+                }
+                values.addAll(exportableIssue.getAttributes().values());
+                writer.append(",[").append(formatList(values, ",", true)).append("]");
             }
+            writer.append("]");
             writer.flush();
         }
     }

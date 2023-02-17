@@ -326,8 +326,12 @@ public class J2aaApp {
                 fLog.append(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек\n", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
                 fLog.update(fLog.getGraphics());
 
-                // экспортируем данные в csv файл
-                converter.export2File(outputFile);
+                // экспортируем данные в файл
+                if (FilenameUtils.getExtension(outputFile.getName()).equalsIgnoreCase("json"))
+                    converter.export2JsonFile(outputFile);
+                else
+                    converter.export2CsvFile(outputFile);
+
                 fLog.append(String.format("\nДанные выгружены в файл:\n%s\n", outputFile.getAbsoluteFile()));
             } else
                 fLog.append("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
