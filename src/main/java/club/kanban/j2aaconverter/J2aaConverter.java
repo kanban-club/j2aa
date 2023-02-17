@@ -50,13 +50,13 @@ public class J2aaConverter {
                         ExportableIssue exportableIssue = ExportableIssue.createFromIssue(issue, boardConfig);
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
-                        System.out.printf("%s: %s\n", issue.getKey(), e.getMessage());
+                        progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));
                     }
                 }
 
                 exportableIssues.addAll(exportableIssuesSet);
                 startAt += boardIssuesSet.getMaxResults();
-                progressMonitor.update(exportableIssues.size(), boardIssuesSet.getTotal());
+                progressMonitor.update(String.format("%d из %d issues получено\n", exportableIssues.size(), boardIssuesSet.getTotal()));
             }
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }

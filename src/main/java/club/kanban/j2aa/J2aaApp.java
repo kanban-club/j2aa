@@ -137,7 +137,7 @@ public class J2aaApp {
 
                     writeConnProfile(file);
                     lastConnFileDir = file.getParent();
-                    showMessageDialog(/*appFrame.getContentPane()*/ getAppFrame(), String.format("Настройки сохранены в файл %s", file.getName()), "Сохранение настроек", INFORMATION_MESSAGE);
+                    showMessageDialog(getAppFrame(), String.format("Настройки сохранены в файл %s", file.getName()), "Сохранение настроек", INFORMATION_MESSAGE);
                 } catch (IOException e) {
                     showMessageDialog(getAppFrame(), "Ошибка сохранения настроек", "Ошибка", ERROR_MESSAGE);
                 }
@@ -315,8 +315,8 @@ public class J2aaApp {
 
             Date startDate = new Date();
 
-            converter.importFromJira(board, getJqlSubFilter(), (current, max) -> {
-                if (max > 0) fLog.append(String.format("%d из %d issues получено\n", current, max));
+            converter.importFromJira(board, getJqlSubFilter(), (msg) -> {
+                fLog.append(msg);
                 fLog.update(fLog.getGraphics());
             });
 
@@ -329,7 +329,8 @@ public class J2aaApp {
                 // экспортируем данные в csv файл
                 converter.export2File(outputFile);
                 fLog.append(String.format("\nДанные выгружены в файл:\n%s\n", outputFile.getAbsoluteFile()));
-            } else fLog.append("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
+            } else
+                fLog.append("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
         } catch (JiraException e) {
             Exception ex = (Exception) e.getCause();
             if (ex instanceof SSLPeerUnverifiedException)
@@ -396,13 +397,13 @@ public class J2aaApp {
         startButton.setText("Конвертировать");
         panel1.add(startButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         loadSettingsButton = new JButton();
-        loadSettingsButton.setText("Загрузить профиль");
+        loadSettingsButton.setText("Выбрать профиль");
         rootPanel.add(loadSettingsButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         saveSettingsButton = new JButton();
         saveSettingsButton.setText("Сохранить профиль");
         rootPanel.add(saveSettingsButton, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         selectOutputFileButton = new JButton();
-        selectOutputFileButton.setText("Выбрать файл");
+        selectOutputFileButton.setText("Обзор");
         rootPanel.add(selectOutputFileButton, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         fPassword = new JPasswordField();
         rootPanel.add(fPassword, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
