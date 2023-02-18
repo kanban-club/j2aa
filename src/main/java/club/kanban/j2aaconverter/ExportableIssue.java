@@ -36,9 +36,13 @@ public class ExportableIssue {
     private Date[] columnTransitionsLog;
     @Getter
     private Long blockedDays;
+    @Getter
+    private BoardConfig boardConfig;
 
     public static ExportableIssue fromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         ExportableIssue exportableIssue = new ExportableIssue();
+
+        exportableIssue.boardConfig = boardConfig;
 
         exportableIssue.key = issue.getKey();
 

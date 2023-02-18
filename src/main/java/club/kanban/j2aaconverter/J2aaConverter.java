@@ -1,8 +1,15 @@
 package club.kanban.j2aaconverter;
 
-import club.kanban.jirarestclient.*;
+import club.kanban.j2aaconverter.adapters.Adapter;
+import club.kanban.j2aaconverter.adapters.CsvAdapter;
+import club.kanban.j2aaconverter.adapters.JsonAdapter;
+import club.kanban.jirarestclient.Board;
+import club.kanban.jirarestclient.BoardConfig;
+import club.kanban.jirarestclient.BoardIssuesSet;
+import club.kanban.jirarestclient.Issue;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -10,20 +17,10 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static club.kanban.j2aaconverter.Formatter.formatString;
 
 public class J2aaConverter {
-    private final int DEFAULT_COLUMNS_COUNT = 20;
-    private final String DEFAULT_DATETIME_FORMAT = "MM/dd/yyyy";
-    private BoardConfig boardConfig;
     @Getter
     private List<ExportableIssue> exportableIssues;
 
@@ -37,7 +34,7 @@ public class J2aaConverter {
      */
     public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
 
-        this.boardConfig = board.getBoardConfig();
+        BoardConfig boardConfig = board.getBoardConfig();
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
         exportableIssues = null;
@@ -45,8 +42,7 @@ public class J2aaConverter {
             boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, ExportableIssue.getHttpFields());
 
             if (boardIssuesSet.getIssues().size() > 0) {
-                if (exportableIssues == null)
-                    exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
+                if (exportableIssues == null) exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
 
                 // Map issue's changelog to board columns
                 List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
@@ -66,112 +62,27 @@ public class J2aaConverter {
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
 
-    public void export2CsvFile(File outputFile) throws IOException {
-        if (outputFile.getParentFile() != null)
-            Files.createDirectories(outputFile.getParentFile().toPath());
+    public void export2File(File outputFile) throws IOException {
+        if (outputFile.getParentFile() != null) Files.createDirectories(outputFile.getParentFile().toPath());
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
 
+            Adapter adapter;
+            if (FilenameUtils.getExtension(outputFile.getName()).equalsIgnoreCase("json"))
+                adapter = new JsonAdapter();
+            else
+                adapter = new CsvAdapter();
+
+            writer.write(adapter.getPrefix());
             for (int i = 0; i < exportableIssues.size(); i++) {
                 ExportableIssue exportableIssue = exportableIssues.get(i);
 
-                if (i == 0) {
-                    // запись всего заголовка
-                    List<String> headers = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
-                    headers.addAll(Arrays.asList("ID", "Link", "Name"));
-                    for (BoardColumn boardColumn : boardConfig.getBoardColumns())
-                        headers.add(boardColumn.getName());
-                    headers.addAll(exportableIssue.getAttributes().keySet());
-                    writer.write(headers.stream()
-                                    .map(Formatter::formatString)
-                                    .collect(Collectors.joining(","))
-                    );
-                }
+                if (i == 0)
+                    writer.write(adapter.getHeaders(exportableIssue));
 
-                DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
-
-                // запись строчек
-                List<String> values = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
-                values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
-
-                for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
-                    Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
-                    values.add(date != null ? df.format(date) : "");
-                }
-
-                exportableIssue.getAttributes().forEach((k, v) -> {
-                            if (v instanceof String) {
-                                values.add(formatString((String) v));
-                            } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
-                                values.add("[" + ((List<String>) v).stream()
-                                        .map(Formatter::formatString)
-                                        .collect(Collectors.joining("|"))
-                                        + "]");
-                            } else {
-                                values.add("");
-                            }
-                });
-
-                writer.append('\n').append(values.stream()
-                        .collect(Collectors.joining(","))
-                );
+                writer.write(adapter.getValues(exportableIssue));
             }
-            writer.flush();
-        }
-    }
-    public void export2JsonFile(File outputFile) throws IOException {
-        if (outputFile.getParentFile() != null)
-            Files.createDirectories(outputFile.getParentFile().toPath());
-
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
-
-            for (int i = 0; i < exportableIssues.size(); i++) {
-                ExportableIssue exportableIssue = exportableIssues.get(i);
-
-                if (i == 0) {
-                    // запись всего заголовка
-                    List<String> headers = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
-                    headers.addAll(Arrays.asList("ID", "Link", "Name"));
-                    for (BoardColumn boardColumn : boardConfig.getBoardColumns())
-                        headers.add(boardColumn.getName());
-                    headers.addAll(exportableIssue.getAttributes().keySet());
-                    writer.write("[[" +
-                            headers.stream()
-                                    .map(s -> "\"" + formatString(s) + "\"")
-                                    .collect(Collectors.joining(","))
-                            + "]");
-                }
-
-                DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
-
-                // запись строчек
-                List<String> values = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
-                values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
-
-                for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
-                    Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
-                    values.add(date != null ? df.format(date) : "");
-                }
-
-                exportableIssue.getAttributes().forEach((k, v) -> {
-                    if (v instanceof String) {
-                        values.add(formatString((String) v));
-                    } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
-                        values.add("[" + ((List<String>) v).stream()
-                                .map(Formatter::formatString)
-                                .collect(Collectors.joining("|"))
-                                + "]");
-                    } else {
-                        values.add("");
-                    }
-                });
-
-                writer.append(",[").append(values.stream()
-                        .map(s -> "\"" + formatString(s) + "\"")
-                        .collect(Collectors.joining(","))
-                ).append("]");
-            }
-            writer.append("]");
+            writer.write(adapter.getPostfix());
             writer.flush();
         }
     }

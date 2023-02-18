@@ -327,10 +327,7 @@ public class J2aaApp {
                 fLog.update(fLog.getGraphics());
 
                 // экспортируем данные в файл
-                if (FilenameUtils.getExtension(outputFile.getName()).equalsIgnoreCase("json"))
-                    converter.export2JsonFile(outputFile);
-                else
-                    converter.export2CsvFile(outputFile);
+                converter.export2File(outputFile);
 
                 fLog.append(String.format("\nДанные выгружены в файл:\n%s\n", outputFile.getAbsoluteFile()));
             } else
