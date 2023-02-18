@@ -12,6 +12,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Класс для аггрегации атрибутов, подлежащих экспорту, их последовательности,
+ * а также полей котрые нужно запросить в jira
+ */
 public class ExportableIssue {
     // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
     // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
@@ -27,19 +31,19 @@ public class ExportableIssue {
     @Getter
     private String name;
     @Getter
-    private Map<String, String> attributes;
+    private Map<String, Object> attributes; // Object == String || Object == List<String> && Object != null
     @Getter
     private Date[] columnTransitionsLog;
     @Getter
     private Long blockedDays;
 
-    public static ExportableIssue createFromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
+    public static ExportableIssue fromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
         ExportableIssue exportableIssue = new ExportableIssue();
 
         exportableIssue.key = issue.getKey();
 
         if (SHOW_ISSUE_NAME && issue.getSummary() != null)
-            exportableIssue.name = CSVFormatter.formatString(issue.getSummary());
+            exportableIssue.name = issue.getSummary();
         else
             exportableIssue.name = "";
 
@@ -56,19 +60,17 @@ public class ExportableIssue {
         //Считываем дополнительные поля для Issue
         exportableIssue.attributes = new LinkedHashMap<>();
 
-        exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : ""); // project key: issue.getProject.getKey()
+        exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
         exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
         exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
-        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? "[" + CSVFormatter.formatList(issue.getLabels(), "|", false) +"]" : "");
-        exportableIssue.attributes.put("Components", issue.getComponents() != null ? "[" +
-                CSVFormatter.formatList(issue.getComponents()
-                        .stream()
-                        .map(JiraResource::getName)
-                        .collect(Collectors.toList())
-                , "|", false) + "]" : "");
+        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
+        exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents()
+                .stream()
+                .map(JiraResource::getName)
+                .collect(Collectors.toList()) : new ArrayList<>(0));
 
         exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
-        exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? CSVFormatter.formatString(issue.getEpic().getName()) : "");
+        exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
 
         exportableIssue.initTransitionsLog(issue, boardConfig);
         exportableIssue.initBlockedDays(issue);

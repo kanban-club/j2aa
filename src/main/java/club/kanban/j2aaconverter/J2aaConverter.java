@@ -16,10 +16,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static club.kanban.j2aaconverter.CSVFormatter.formatList;
+import static club.kanban.j2aaconverter.Formatter.formatString;
 
 public class J2aaConverter {
+    private final int DEFAULT_COLUMNS_COUNT = 20;
+    private final String DEFAULT_DATETIME_FORMAT = "MM/dd/yyyy";
     private BoardConfig boardConfig;
     @Getter
     private List<ExportableIssue> exportableIssues;
@@ -49,7 +52,7 @@ public class J2aaConverter {
                 List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
                 for (Issue issue : boardIssuesSet.getIssues()) {
                     try {
-                        ExportableIssue exportableIssue = ExportableIssue.createFromIssue(issue, boardConfig);
+                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig);
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
                         progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));
@@ -74,31 +77,48 @@ public class J2aaConverter {
 
                 if (i == 0) {
                     // запись всего заголовка
-                    List<String> headers = new ArrayList<>(20);
+                    List<String> headers = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
                     headers.addAll(Arrays.asList("ID", "Link", "Name"));
                     for (BoardColumn boardColumn : boardConfig.getBoardColumns())
                         headers.add(boardColumn.getName());
                     headers.addAll(exportableIssue.getAttributes().keySet());
-                    writer.write(formatList(headers, ",", true));
+                    writer.write(headers.stream()
+                                    .map(Formatter::formatString)
+                                    .collect(Collectors.joining(","))
+                    );
                 }
 
-                DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+                DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
 
                 // запись строчек
-                List<String> values = new ArrayList<>(20);
+                List<String> values = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
                 values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
                     values.add(date != null ? df.format(date) : "");
                 }
-                values.addAll(exportableIssue.getAttributes().values());
-                writer.append('\n').append(formatList(values, ",", true));
+
+                exportableIssue.getAttributes().forEach((k, v) -> {
+                            if (v instanceof String) {
+                                values.add(formatString((String) v));
+                            } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
+                                values.add("[" + ((List<String>) v).stream()
+                                        .map(Formatter::formatString)
+                                        .collect(Collectors.joining("|"))
+                                        + "]");
+                            } else {
+                                values.add("");
+                            }
+                });
+
+                writer.append('\n').append(values.stream()
+                        .collect(Collectors.joining(","))
+                );
             }
             writer.flush();
         }
     }
-
     public void export2JsonFile(File outputFile) throws IOException {
         if (outputFile.getParentFile() != null)
             Files.createDirectories(outputFile.getParentFile().toPath());
@@ -110,30 +130,49 @@ public class J2aaConverter {
 
                 if (i == 0) {
                     // запись всего заголовка
-                    List<String> headers = new ArrayList<>(20);
+                    List<String> headers = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
                     headers.addAll(Arrays.asList("ID", "Link", "Name"));
                     for (BoardColumn boardColumn : boardConfig.getBoardColumns())
                         headers.add(boardColumn.getName());
                     headers.addAll(exportableIssue.getAttributes().keySet());
-                    writer.write("[[" + formatList(headers, ",", true) + "]");
+                    writer.write("[[" +
+                            headers.stream()
+                                    .map(s -> "\"" + formatString(s) + "\"")
+                                    .collect(Collectors.joining(","))
+                            + "]");
                 }
 
-                DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+                DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
 
                 // запись строчек
-                List<String> values = new ArrayList<>(20);
+                List<String> values = new ArrayList<>(DEFAULT_COLUMNS_COUNT);
                 values.addAll(Arrays.asList(exportableIssue.getKey(), exportableIssue.getLink(), exportableIssue.getName()));
 
                 for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
                     Date date = exportableIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
                     values.add(date != null ? df.format(date) : "");
                 }
-                values.addAll(exportableIssue.getAttributes().values());
-                writer.append(",[").append(formatList(values, ",", true)).append("]");
+
+                exportableIssue.getAttributes().forEach((k, v) -> {
+                    if (v instanceof String) {
+                        values.add(formatString((String) v));
+                    } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
+                        values.add("[" + ((List<String>) v).stream()
+                                .map(Formatter::formatString)
+                                .collect(Collectors.joining("|"))
+                                + "]");
+                    } else {
+                        values.add("");
+                    }
+                });
+
+                writer.append(",[").append(values.stream()
+                        .map(s -> "\"" + formatString(s) + "\"")
+                        .collect(Collectors.joining(","))
+                ).append("]");
             }
             writer.append("]");
             writer.flush();
         }
     }
-
 }
