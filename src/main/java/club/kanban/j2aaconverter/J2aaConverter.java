@@ -8,6 +8,7 @@ import club.kanban.jirarestclient.BoardConfig;
 import club.kanban.jirarestclient.BoardIssuesSet;
 import club.kanban.jirarestclient.Issue;
 import lombok.Getter;
+import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
 
@@ -22,6 +23,7 @@ import java.util.List;
 
 public class J2aaConverter {
     @Getter
+    @Setter
     private List<ExportableIssue> exportableIssues;
 
     /**
@@ -42,7 +44,8 @@ public class J2aaConverter {
             boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, ExportableIssue.getHttpFields());
 
             if (boardIssuesSet.getIssues().size() > 0) {
-                if (exportableIssues == null) exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
+                if (exportableIssues == null)
+                    exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
 
                 // Map issue's changelog to board columns
                 List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());

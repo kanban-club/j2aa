@@ -52,17 +52,6 @@ public class Board extends JiraResource {
             JSON result = getRestClient().get(url, params);
             List<Issue> issues = getResourceArray(Issue.class, result, getRestClient(), "issues");
 
-/*            // Map issue's changelog to board columns
-            List<BoardIssue> boardIssues = new ArrayList<>(issues.size());
-            for (Issue issue : issues) {
-                try {
-                    BoardIssue boardIssue = BoardIssue.createFromIssue(issue, boardConfig);
-                    boardIssues.add(boardIssue);
-                } catch (Exception e) {
-                    System.out.printf("%s: %s\n", issue.getKey(), e.getMessage());
-                }
-            }*/
-
             boardIssuesSet = new BoardIssuesSet(issues,
                     ((JSONObject) result).getInt("total"),
                     ((JSONObject) result).getInt("maxResults"));
