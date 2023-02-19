@@ -11,6 +11,6 @@
     <entry key="jql_sub_filter">created >= -12w</entry>
     
     <!-- Файл для вывода issues. по-умолчанию output.csv -->
-    <entry key="output_file_name">csv\output.csv</entry>
+    <entry key="output_file_name">csv/output.csv</entry>
 
 </properties>
