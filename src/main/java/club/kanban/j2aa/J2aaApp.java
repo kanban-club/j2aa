@@ -12,6 +12,9 @@ import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestException;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -39,12 +42,12 @@ import static javax.swing.JOptionPane.*;
 @SpringBootApplication
 @PropertySources({
         @PropertySource("classpath:default_profile.xml"),
-        @PropertySource(value = "classpath:config.properties", ignoreResourceNotFound = true),
-        @PropertySource(value = "file:./config.properties", ignoreResourceNotFound = true)
+        @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
 })
 
 public class J2aaApp {
     public static final String VERSION_KEY = "build.version";
+    public static final String CONFIG_FILE_NAME = ".j2aa";
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
 
@@ -177,6 +180,17 @@ public class J2aaApp {
     }
 
     public static void main(String[] args) {
+        File configFile = new File(System.getProperty("user.home") + "/" + CONFIG_FILE_NAME);
+        if (!configFile.exists()) {
+            try {
+                IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
+                                .getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
+            } catch (IOException e) {
+                Logger logger = LoggerFactory.getLogger(J2aaApp.class.getName());
+                logger.error("Ошибка создания конфигурационный файла " + configFile.getAbsoluteFile());
+            }
+        }
+
         ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
 
         EventQueue.invokeLater(() -> {
