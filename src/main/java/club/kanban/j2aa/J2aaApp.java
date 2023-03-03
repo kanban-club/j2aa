@@ -26,11 +26,14 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -41,12 +44,12 @@ import static javax.swing.JOptionPane.*;
 
 @SpringBootApplication
 @PropertySources({
-        @PropertySource("classpath:default_profile.xml"),
+        @PropertySource("classpath:default-profile.xml"),
         @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
 })
 
 public class J2aaApp {
-    public static final String VERSION_KEY = "build.version";
+    public static final String VERSION_KEY = "version";
     public static final String CONFIG_FILE_NAME = ".j2aa";
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
@@ -92,9 +95,9 @@ public class J2aaApp {
     @Value("${user.dir}")
     private String lastConnFileDir;
 
-    @Value("${" + VERSION_KEY + ":}")
     @Getter
-    private String version;
+    @Value("${" + VERSION_KEY + ":}")
+    private final String version = null;
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;
@@ -106,6 +109,7 @@ public class J2aaApp {
     private JButton loadSettingsButton;
     private JButton saveSettingsButton;
     private JPasswordField fPassword;
+    private JLabel labelBoardUrl;
 
     public J2aaApp() {
         super();
@@ -177,6 +181,26 @@ public class J2aaApp {
                 getData(this);
             }
         });
+        labelBoardUrl.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                if (e.getClickCount() == 2) {
+                    Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+                    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            String url = fBoardURL.getText();
+                            if (showConfirmDialog(getAppFrame(),
+                                    String.format("Перейти на доску '%s'?", url),
+                                    "Открытие страницы", YES_NO_OPTION, INFORMATION_MESSAGE) == YES_OPTION) {
+                                desktop.browse(URI.create(fBoardURL.getText()));
+                            }
+                        } catch (IOException ignored) {
+                        }
+                    }
+                }
+            }
+        });
     }
 
     public static void main(String[] args) {
@@ -184,7 +208,7 @@ public class J2aaApp {
         if (!configFile.exists()) {
             try {
                 IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
-                                .getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
+                        .getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
             } catch (IOException e) {
                 Logger logger = LoggerFactory.getLogger(J2aaApp.class.getName());
                 logger.error("Ошибка создания конфигурационный файла " + configFile.getAbsoluteFile());
@@ -393,9 +417,9 @@ public class J2aaApp {
     private void $$$setupUI$$$() {
         rootPanel = new JPanel();
         rootPanel.setLayout(new GridLayoutManager(6, 3, new Insets(0, 0, 0, 10), -1, -1));
-        final JLabel label1 = new JLabel();
-        label1.setText("Ссылка на доску*");
-        rootPanel.add(label1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        labelBoardUrl = new JLabel();
+        labelBoardUrl.setText("Ссылка на доску*");
+        rootPanel.add(labelBoardUrl, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fBoardURL = new JTextField();
         rootPanel.add(fBoardURL, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
@@ -422,22 +446,22 @@ public class J2aaApp {
         rootPanel.add(selectOutputFileButton, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         fPassword = new JPasswordField();
         rootPanel.add(fPassword, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-        final JLabel label2 = new JLabel();
-        label2.setText("Пароль*");
-        rootPanel.add(label2, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        final JLabel label1 = new JLabel();
+        label1.setText("Пароль*");
+        rootPanel.add(label1, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fUsername = new JTextField();
         rootPanel.add(fUsername, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        final JLabel label2 = new JLabel();
+        label2.setText("Пользователь*");
+        rootPanel.add(label2, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         final JLabel label3 = new JLabel();
-        label3.setText("Пользователь*");
-        rootPanel.add(label3, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
-        final JLabel label4 = new JLabel();
-        label4.setText("Файл для экспорта*");
-        rootPanel.add(label4, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        label3.setText("Файл для экспорта*");
+        rootPanel.add(label3, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fOutputFileName = new JTextField();
         rootPanel.add(fOutputFileName, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-        final JLabel label5 = new JLabel();
-        label5.setText("Доп.JQL фильтр");
-        rootPanel.add(label5, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        final JLabel label4 = new JLabel();
+        label4.setText("Доп.JQL фильтр");
+        rootPanel.add(label4, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fJQLSubFilter = new JTextField();
         fJQLSubFilter.setText("");
         rootPanel.add(fJQLSubFilter, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
