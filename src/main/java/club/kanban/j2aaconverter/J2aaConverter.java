@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

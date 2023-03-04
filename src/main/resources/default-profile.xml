@@ -7,7 +7,6 @@
 
     <!-- ОПЦИОНАЛЬНЫЕ ПАРАМЕТРЫ -->
     <!-- Дополнительный фильтр для отсева "лишних" issues -->
-<!--    <entry key="jql_sub_filter">created >= '2022/01/01'</entry>-->
     <entry key="jql_sub_filter">created >= -12w</entry>
     
     <!-- Файл для вывода issues. по-умолчанию output.csv -->

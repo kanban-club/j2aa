@@ -51,6 +51,8 @@ import static javax.swing.JOptionPane.*;
 public class J2aaApp {
     public static final String VERSION_KEY = "version";
     public static final String CONFIG_FILE_NAME = ".j2aa";
+    public static final String ARG_PROFILE = "profile";
+
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
 
@@ -60,6 +62,8 @@ public class J2aaApp {
 
     public static final String KEY_USER_NAME = "default.username";
     public static final String KEY_PASSWORD = "default.password";
+
+    private static final Logger logger = LoggerFactory.getLogger(J2aaApp.class);
 
     @Getter
     private final JFrame appFrame;
@@ -90,14 +94,14 @@ public class J2aaApp {
     private String jqlSubFilter;
 
     @Getter
-    @Setter
     private File connProfile;
     @Value("${user.dir}")
     private String lastConnFileDir;
 
     @Getter
     @Value("${" + VERSION_KEY + ":}")
-    private final String version = null;
+    private String version;
+
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;
@@ -110,9 +114,6 @@ public class J2aaApp {
     private JButton saveSettingsButton;
     private JPasswordField fPassword;
     private JLabel labelBoardUrl;
-
-    @Value("${profile:}")
-    private String envProfile; // Profile, obtained from an environment
 
     public J2aaApp() {
         super();
@@ -128,7 +129,6 @@ public class J2aaApp {
             Runnable r = this::doConversion;
             r.run();
         });
-
         saveSettingsButton.addActionListener(actionEvent -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(lastConnFileDir));
@@ -162,7 +162,6 @@ public class J2aaApp {
             if (returnVal == APPROVE_OPTION) {
                 try {
                     readConnProfile(chooser.getSelectedFile());
-                    setData(this);
                     fLog.setText(null);
                     lastConnFileDir = chooser.getSelectedFile().getParent();
                 } catch (IOException ex) {
@@ -213,8 +212,7 @@ public class J2aaApp {
                 IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
                         .getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
             } catch (IOException e) {
-                Logger logger = LoggerFactory.getLogger(J2aaApp.class.getName());
-                logger.error("Ошибка создания конфигурационный файла " + configFile.getAbsoluteFile());
+                logger.error("Ошибка создания конфигурационного файла '{}'", configFile.getAbsoluteFile());
             }
         }
 
@@ -222,21 +220,45 @@ public class J2aaApp {
 
         EventQueue.invokeLater(() -> {
             J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
-            j2aaApp.setData(j2aaApp);
-            if (j2aaApp.envProfile != null && !j2aaApp.envProfile.isEmpty()) {
-                try {
-                    j2aaApp.readConnProfile(new File(j2aaApp.envProfile));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            j2aaApp.setAppTitle();
-            j2aaApp.getAppFrame().setVisible(true);
+            j2aaApp.init(ctx);
         });
     }
 
-    private void readConnProfile(File file) throws IOException {
-        getData(this);
+    /**
+     * Инициализация приложения:
+     * 1. Загружаем профили подключения из командной строки
+     * 2. Настраиваем данные для отображения
+     * 3. Делаем приложение видимым
+     *
+     * @param ctx контекст приложения
+     */
+    public void init(ConfigurableApplicationContext ctx) {
+        String profileName = ctx.getEnvironment().getProperty(ARG_PROFILE);
+
+        if (profileName != null) {
+            File file = new File(profileName);
+            try {
+                readConnProfile(file);
+            } catch (IOException e) {
+                logger.error("Не удается прочитать конфигурационный файл '{}'", file.getAbsoluteFile());
+                System.exit(-1);
+            }
+        } else {
+            setData(this);
+            this.setAppTitle();
+        }
+        getAppFrame().setVisible(true);
+    }
+
+    /**
+     * Загружает профиль подключения из заданного файла.
+     * В случае успеха этот файл становится активным профилем подлчения
+     *
+     * @param file Файл для загрухки
+     * @throws IOException                      в случае если файл не найден
+     * @throws InvalidPropertiesFormatException если файл имеет неверный формат
+     */
+    private void readConnProfile(File file) throws IOException, InvalidPropertiesFormatException {
         Properties p = new Properties();
         FileInputStream fis = new FileInputStream(file.getAbsoluteFile());
 
@@ -252,11 +274,18 @@ public class J2aaApp {
         if (this.getBoardUrl() == null || this.getBoardUrl().trim().equals(""))
             throw new InvalidPropertiesFormatException(String.format("Не заполнены обязательные поля %s",
                     (this.getBoardUrl() == null || this.getBoardUrl().trim().equals("") ? " " + KEY_BOARD_URL : "")));
+        connProfile = file;
         setData(this);
-        setConnProfile(file);
         setAppTitle();
     }
 
+    /**
+     * Записывает текущее состояние полей экранной формы в заданный file.
+     * В случае успеха новый файл становится активным профилем подключения
+     *
+     * @param file файл для записи
+     * @throws IOException в случае если не удается записать файл
+     */
     private void writeConnProfile(File file) throws IOException {
         getData(this);
 
@@ -273,10 +302,15 @@ public class J2aaApp {
 
         fos.flush();
         fos.close();
-        setConnProfile(file);
+        connProfile = file;
         setAppTitle();
     }
 
+    /**
+     * Передает значения переменных приложения в поля экранной формы
+     *
+     * @param data класс приложения
+     */
     public void setData(J2aaApp data) {
         fBoardURL.setText(data.getBoardUrl());
         fUsername.setText(data.getUserName());
@@ -285,6 +319,11 @@ public class J2aaApp {
         fPassword.setText(data.getPassword());
     }
 
+    /**
+     * Передает значения полей экранной формы в переменные приложения
+     *
+     * @param data класс приложения
+     */
     public void getData(J2aaApp data) {
         data.setBoardUrl(fBoardURL.getText());
         data.setUserName(fUsername.getText());
@@ -405,7 +444,7 @@ public class J2aaApp {
 
     public void setAppTitle() {
         String newTitle = DEFAULT_APP_TITLE
-                + (!version.isEmpty() ? " v" + version : "")
+                + ((!version.isEmpty()) ? " v" + version : "")
                 + (connProfile != null ? " [" + connProfile.getName() + "]" : "");
         getAppFrame().setTitle(newTitle);
     }

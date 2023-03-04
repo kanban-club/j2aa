@@ -3,7 +3,6 @@ package club.kanban.j2aaconverter;
 import club.kanban.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDate;
@@ -14,13 +13,13 @@ import java.util.stream.Collectors;
 
 /**
  * Класс для аггрегации атрибутов, подлежащих экспорту, их последовательности,
- * а также полей котрые нужно запросить в jira
+ * а также полей которые нужно запросить в jira
  */
+
 public class ExportableIssue {
     // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
     // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
-    private static final boolean USE_MAX_COLUMN = false;
-
+    private final boolean USE_MAX_COLUMN = false;
     private final static boolean SHOW_ISSUE_LINK = true;
     private final static boolean SHOW_ISSUE_NAME = false;
 
