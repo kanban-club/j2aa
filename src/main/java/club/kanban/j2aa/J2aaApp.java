@@ -111,6 +111,9 @@ public class J2aaApp {
     private JPasswordField fPassword;
     private JLabel labelBoardUrl;
 
+    @Value("${profile:}")
+    private String envProfile; // Profile, obtained from an environment
+
     public J2aaApp() {
         super();
 
@@ -220,6 +223,13 @@ public class J2aaApp {
         EventQueue.invokeLater(() -> {
             J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
             j2aaApp.setData(j2aaApp);
+            if (j2aaApp.envProfile != null && !j2aaApp.envProfile.isEmpty()) {
+                try {
+                    j2aaApp.readConnProfile(new File(j2aaApp.envProfile));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             j2aaApp.setAppTitle();
             j2aaApp.getAppFrame().setVisible(true);
         });
@@ -297,7 +307,7 @@ public class J2aaApp {
             return;
         }
 
-// Парсим адрес доски. Вычисляя адрес jira и boardId (rapidView)
+        // Парсим адрес доски. Вычисляя адрес jira и boardId (rapidView)
         String jiraUrl;
         String boardId = null;
         try {
@@ -305,7 +315,6 @@ public class J2aaApp {
             jiraUrl = url.getProtocol() + "://" + url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort()) + "/";
             String query = url.getQuery();
             if (query != null && !query.trim().isEmpty()) {
-//                String[] tokens = query.split("[\\&]");
                 String[] tokens = query.split("&");
                 for (String token : tokens) {
                     int i = token.indexOf("=");
@@ -324,7 +333,7 @@ public class J2aaApp {
             return;
         }
 
-// Проверяем наличие выходного файла на диске
+        // Проверяем наличие выходного файла на диске
         File outputFile = new File(getOutputFileName());
         if (outputFile.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
             showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
@@ -341,7 +350,8 @@ public class J2aaApp {
         fLog.update(fLog.getGraphics());
 
         J2aaConverter converter = new J2aaConverter();
-// Подключаемся к доске и конвертируем данные
+
+        // Подключаемся к доске и конвертируем данные
         try {
             startButton.setEnabled(false);
             startButton.update(startButton.getGraphics());
