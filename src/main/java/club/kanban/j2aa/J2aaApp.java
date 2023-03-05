@@ -18,7 +18,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
 
@@ -42,6 +44,7 @@ import java.util.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
+@ComponentScan("club.kanban")
 @SpringBootApplication
 @PropertySources({
         @PropertySource("classpath:default-profile.xml"),
@@ -102,6 +105,7 @@ public class J2aaApp {
     @Value("${" + VERSION_KEY + ":}")
     private String version;
 
+    private ApplicationContext ctx;
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;
@@ -229,10 +233,10 @@ public class J2aaApp {
      * 1. Загружаем профили подключения из командной строки
      * 2. Настраиваем данные для отображения
      * 3. Делаем приложение видимым
-     *
-     * @param ctx контекст приложения
      */
     public void init(ConfigurableApplicationContext ctx) {
+        this.ctx = ctx;
+
         String profileName = ctx.getEnvironment().getProperty(ARG_PROFILE);
 
         if (profileName != null) {
@@ -388,7 +392,7 @@ public class J2aaApp {
         fLog.append(String.format("Пользователь %s\n", getUserName()));
         fLog.update(fLog.getGraphics());
 
-        J2aaConverter converter = new J2aaConverter();
+        J2aaConverter converter = ctx.getBean(J2aaConverter.class);
 
         // Подключаемся к доске и конвертируем данные
         try {

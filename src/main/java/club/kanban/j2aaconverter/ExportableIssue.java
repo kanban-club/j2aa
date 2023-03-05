@@ -17,12 +17,7 @@ import java.util.stream.Collectors;
  */
 
 public class ExportableIssue {
-    // USE_MAX_COLUMN = true - в качестве предельной колонки используется максимальный достигнутый issue статус
-    // USE_MAX_COLUMN = false - в качестве предельной колонки используется текущий статус issue
-    private final boolean USE_MAX_COLUMN = false;
     private final static boolean SHOW_ISSUE_LINK = true;
-    private final static boolean SHOW_ISSUE_NAME = false;
-
     @Getter
     private String key;
     @Getter
@@ -38,18 +33,17 @@ public class ExportableIssue {
     @Getter
     private BoardConfig boardConfig;
 
-    public static ExportableIssue fromIssue(Issue issue, BoardConfig boardConfig) throws JiraException {
+    public static ExportableIssue fromIssue(
+            Issue issue,
+            BoardConfig boardConfig,
+            boolean useMaxColumn,
+            boolean showIssueName
+    ) throws JiraException {
         ExportableIssue exportableIssue = new ExportableIssue();
-
         exportableIssue.boardConfig = boardConfig;
 
         exportableIssue.key = issue.getKey();
-
-        if (SHOW_ISSUE_NAME && issue.getSummary() != null)
-            exportableIssue.name = issue.getSummary();
-        else
-            exportableIssue.name = "";
-
+        exportableIssue.name = (showIssueName && issue.getSummary() != null) ? issue.getSummary() : "";
         exportableIssue.link = "";
         if (SHOW_ISSUE_LINK) {
             try {
@@ -75,20 +69,9 @@ public class ExportableIssue {
         exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
         exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
 
-        exportableIssue.initTransitionsLog(issue, boardConfig);
+        exportableIssue.initTransitionsLog(issue, boardConfig, useMaxColumn);
         exportableIssue.initBlockedDays(issue);
         return exportableIssue;
-    }
-
-    public static List<String> getHttpFields() {
-        List<String> fields;
-
-        fields = Arrays.asList("epic", "components", "key", "issuetype", "labels", "status", "created", "priority");
-
-        if (SHOW_ISSUE_NAME)
-            fields.add("summary");
-
-        return fields;
     }
 
     private static long getDaysBetween(Date start, Date end) {
@@ -97,7 +80,7 @@ public class ExportableIssue {
         return ChronoUnit.DAYS.between(localStart, localEnd);
     }
 
-    private void initTransitionsLog(Issue issue, BoardConfig boardConfig) throws JiraException {
+    private void initTransitionsLog(Issue issue, BoardConfig boardConfig, boolean useMaxColumn) throws JiraException {
         // 1.Отсортировать переходы статусов по времени
         List<ChangeLogItem> statusChanges = issue.getStatusChanges();
         statusChanges.sort(Comparator.comparing(ChangeLogItem::getDate));
@@ -167,7 +150,7 @@ public class ExportableIssue {
             if (columnId != null) {
                 if (firstDate == null) {
                     // Инициалихируем первое значение firstColumnId & firstDate
-                    if (columnId <= (USE_MAX_COLUMN ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
+                    if (columnId <= (useMaxColumn ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
                         firstDate = status.getDateIn();
                         firstColumnId = columnId;
                     }
@@ -193,7 +176,7 @@ public class ExportableIssue {
             columnId++;
 
             //далее рассчитываем новые даты, по всем остальным столбцам доски
-            while (columnId < columnLTs.length && columnId <= (USE_MAX_COLUMN ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
+            while (columnId < columnLTs.length && columnId <= (useMaxColumn ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
                 if (columnLTs[(int) columnId] != null) {
                     columnTransitionsLog[(int) columnId] = new Date(prevDate.getTime() + leadTimeMillis);
                     prevDate = columnTransitionsLog[(int) columnId];

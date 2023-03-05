@@ -11,6 +11,9 @@ import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,12 +21,34 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Component
 public class J2aaConverter {
+    private final boolean USE_MAX_COLUMN;
+    private final String[] HTTP_FIELDS;
+
+    private final static String DEFAULT_USE_MAX_COLUMN =  "${use-max-column:false}";
+    private final static String DEFAULT_HTTP_FIELDS =  "${http-fields:epic,components,key,issuetype,labels,status,created,priority}";
+
     @Getter
     @Setter
     private List<ExportableIssue> exportableIssues;
+
+    /**
+     *
+     * @param useMaxColumn true - в качестве предельной колонки используется максимальный достигнутый issue статус
+     *                     false - в качестве предельной колонки используется текущий статус issue
+     * @param httpFields  поля для http запроса
+     */
+    public J2aaConverter(
+            @Value(DEFAULT_USE_MAX_COLUMN) boolean useMaxColumn,
+            @Value(DEFAULT_HTTP_FIELDS) String[] httpFields) {
+        USE_MAX_COLUMN = useMaxColumn;
+        HTTP_FIELDS = httpFields;
+    }
 
     /**
      * Get set of issues for the board
@@ -40,7 +65,7 @@ public class J2aaConverter {
         int startAt = 0;
         exportableIssues = null;
         do {
-            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, ExportableIssue.getHttpFields());
+            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, HTTP_FIELDS);
 
             if (boardIssuesSet.getIssues().size() > 0) {
                 if (exportableIssues == null)
@@ -50,7 +75,10 @@ public class J2aaConverter {
                 List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
                 for (Issue issue : boardIssuesSet.getIssues()) {
                     try {
-                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig);
+                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(
+                                issue, boardConfig,
+                                USE_MAX_COLUMN,
+                                Arrays.stream(HTTP_FIELDS).anyMatch("summary"::equals));
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
                         progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));

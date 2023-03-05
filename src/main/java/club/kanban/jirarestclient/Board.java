@@ -31,7 +31,7 @@ public class Board extends JiraResource {
     public BoardIssuesSet getBoardIssuesSet(String jqlSubFilter,
                                             int startAt,
                                             int maxResults,
-                                            List<String> httpFields) throws JiraException {
+                                            String[] httpFields) throws JiraException {
         BoardIssuesSet boardIssuesSet;
         String url = RESOURCE_URI + "board/" + getId() + "/issue";
 
