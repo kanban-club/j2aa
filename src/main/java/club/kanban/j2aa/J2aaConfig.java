@@ -1,12 +1,13 @@
 package club.kanban.j2aa;
 
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
+import org.springframework.context.annotation.*;
 
 @Configuration
-@ComponentScan("club.kanban")
+@ComponentScans({
+        @ComponentScan("club.kanban.j2aa"),
+        @ComponentScan("club.kanban.j2aa.j2aaconverter")
+})
+
 @PropertySources({
         @PropertySource("classpath:default-profile.xml"),
         @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
