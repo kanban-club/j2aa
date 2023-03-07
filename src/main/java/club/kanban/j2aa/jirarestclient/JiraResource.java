@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-package club.kanban.jirarestclient;
+package club.kanban.j2aa.jirarestclient;
 
 import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;

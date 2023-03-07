@@ -1,7 +1,7 @@
 package club.kanban.j2aa;
 
-import club.kanban.j2aaconverter.J2aaConverter;
-import club.kanban.jirarestclient.Board;
+import club.kanban.j2aa.j2aaconverter.J2aaConverter;
+import club.kanban.j2aa.jirarestclient.Board;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
@@ -15,14 +15,12 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
@@ -44,13 +42,7 @@ import java.util.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
-@ComponentScan("club.kanban")
 @SpringBootApplication
-@PropertySources({
-        @PropertySource("classpath:default-profile.xml"),
-        @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
-})
-
 public class J2aaApp {
     public static final String VERSION_KEY = "version";
     public static final String CONFIG_FILE_NAME = ".j2aa";
@@ -105,7 +97,11 @@ public class J2aaApp {
     @Value("${" + VERSION_KEY + ":}")
     private String version;
 
-    private ApplicationContext ctx;
+    @Autowired
+    private ApplicationContext context;
+    @Autowired
+    private J2aaConverter converter;
+
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;
@@ -220,12 +216,11 @@ public class J2aaApp {
             }
         }
 
-        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
-
-        EventQueue.invokeLater(() -> {
-            J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
-            j2aaApp.init(ctx);
-        });
+        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaConfig.class)
+                .headless(false)
+                .run(args);
+        J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
+        j2aaApp.init();
     }
 
     /**
@@ -234,10 +229,8 @@ public class J2aaApp {
      * 2. Настраиваем данные для отображения
      * 3. Делаем приложение видимым
      */
-    public void init(ConfigurableApplicationContext ctx) {
-        this.ctx = ctx;
-
-        String profileName = ctx.getEnvironment().getProperty(ARG_PROFILE);
+    public void init() {
+        String profileName = context.getEnvironment().getProperty(ARG_PROFILE);
 
         if (profileName != null) {
             File file = new File(profileName);
@@ -339,14 +332,14 @@ public class J2aaApp {
     private void doConversion() {
         getData(this);
 
-        List<String> missedparams = new ArrayList<>(10);
-        if (getBoardUrl() == null || getBoardUrl().trim().isEmpty()) missedparams.add("Ссылка на доску");
-        if (getUserName() == null || getUserName().trim().isEmpty()) missedparams.add("Пользователь");
-        if (getPassword() == null || getPassword().trim().isEmpty()) missedparams.add("Пароль");
+        List<String> missedParams = new ArrayList<>(10);
+        if (getBoardUrl() == null || getBoardUrl().trim().isEmpty()) missedParams.add("Ссылка на доску");
+        if (getUserName() == null || getUserName().trim().isEmpty()) missedParams.add("Пользователь");
+        if (getPassword() == null || getPassword().trim().isEmpty()) missedParams.add("Пароль");
         if (getOutputFileName() == null || getOutputFileName().trim().isEmpty())
-            missedparams.add("Файл для экспорта");
-        if (missedparams.size() > 0) {
-            showMessageDialog(getAppFrame(), "Не указаны обязательные параметры: " + String.join(", ", missedparams), "Ошибка", ERROR_MESSAGE);
+            missedParams.add("Файл для экспорта");
+        if (missedParams.size() > 0) {
+            showMessageDialog(getAppFrame(), "Не указаны обязательные параметры: " + String.join(", ", missedParams), "Ошибка", ERROR_MESSAGE);
             return;
         }
 
@@ -391,8 +384,6 @@ public class J2aaApp {
         fLog.append(String.format("Подключаемся к серверу: %s\n", jiraUrl));
         fLog.append(String.format("Пользователь %s\n", getUserName()));
         fLog.update(fLog.getGraphics());
-
-        J2aaConverter converter = ctx.getBean(J2aaConverter.class);
 
         // Подключаемся к доске и конвертируем данные
         try {

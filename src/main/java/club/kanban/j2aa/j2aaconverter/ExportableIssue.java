@@ -1,6 +1,6 @@
-package club.kanban.j2aaconverter;
+package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.jirarestclient.*;
+import club.kanban.j2aa.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
 import java.net.MalformedURLException;

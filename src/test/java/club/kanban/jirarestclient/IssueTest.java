@@ -1,6 +1,10 @@
 package club.kanban.jirarestclient;
 
-import club.kanban.j2aaconverter.ExportableIssue;
+import club.kanban.j2aa.j2aaconverter.ExportableIssue;
+import club.kanban.j2aa.jirarestclient.Board;
+import club.kanban.j2aa.jirarestclient.BoardConfig;
+import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
+import club.kanban.j2aa.jirarestclient.Issue;
 import net.rcarz.jiraclient.JiraException;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -32,7 +36,7 @@ class IssueTest {
         issue = new Issue(null, Utils.getJSONObjectFromResource("testIssue.json"));
 
         // конвертировать Issue в BoardIssue
-        ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig);
+        ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig, false, false);
 
         // загрузка нескольких Issues в BoardIssuesSet
         JSONObject jsonIssuesSet = (JSONObject) JSONSerializer.toJSON(Utils.getJSONObjectFromResource("testIssuesSet.json"));

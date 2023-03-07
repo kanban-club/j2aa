@@ -1,8 +1,7 @@
 package club.kanban.j2aa;
 
-import club.kanban.j2aaconverter.ExportableIssue;
-import club.kanban.jirarestclient.Board;
-import club.kanban.jirarestclient.BoardIssuesSet;
+import club.kanban.j2aa.jirarestclient.Board;
+import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
 import net.rcarz.jiraclient.BasicCredentials;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;

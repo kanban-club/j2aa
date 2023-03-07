@@ -1,4 +1,4 @@
-package club.kanban.jirarestclient;
+package club.kanban.j2aa.jirarestclient;
 
 import lombok.Getter;
 import net.rcarz.jiraclient.Field;

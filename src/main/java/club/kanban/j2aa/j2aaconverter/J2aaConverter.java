@@ -1,18 +1,18 @@
-package club.kanban.j2aaconverter;
+package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.j2aaconverter.adapters.Adapter;
-import club.kanban.j2aaconverter.adapters.CsvAdapter;
-import club.kanban.j2aaconverter.adapters.JsonAdapter;
-import club.kanban.jirarestclient.Board;
-import club.kanban.jirarestclient.BoardConfig;
-import club.kanban.jirarestclient.BoardIssuesSet;
-import club.kanban.jirarestclient.Issue;
+import club.kanban.j2aa.j2aaconverter.adapters.AbstractAdapter;
+import club.kanban.j2aa.j2aaconverter.adapters.CsvAdapter;
+import club.kanban.j2aa.j2aaconverter.adapters.JsonAdapter;
+import club.kanban.j2aa.jirarestclient.Board;
+import club.kanban.j2aa.jirarestclient.BoardConfig;
+import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
+import club.kanban.j2aa.jirarestclient.Issue;
 import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,9 +23,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Component
+@Service
 public class J2aaConverter {
     private final boolean USE_MAX_COLUMN;
     private final String[] HTTP_FIELDS;
@@ -78,7 +77,7 @@ public class J2aaConverter {
                         ExportableIssue exportableIssue = ExportableIssue.fromIssue(
                                 issue, boardConfig,
                                 USE_MAX_COLUMN,
-                                Arrays.stream(HTTP_FIELDS).anyMatch("summary"::equals));
+                                Arrays.asList(HTTP_FIELDS).contains("summary"));
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
                         progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));
@@ -97,7 +96,7 @@ public class J2aaConverter {
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
 
-            Adapter adapter;
+            AbstractAdapter adapter;
             if (FilenameUtils.getExtension(outputFile.getName()).equalsIgnoreCase("json"))
                 adapter = new JsonAdapter();
             else

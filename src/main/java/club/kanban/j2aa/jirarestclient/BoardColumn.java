@@ -1,4 +1,4 @@
-package club.kanban.jirarestclient;
+package club.kanban.j2aa.jirarestclient;
 
 import lombok.AccessLevel;
 import lombok.Getter;

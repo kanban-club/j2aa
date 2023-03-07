@@ -1,8 +1,10 @@
 package club.kanban.j2aaconverter;
 
-import club.kanban.jirarestclient.BoardConfig;
-import club.kanban.jirarestclient.BoardIssuesSet;
-import club.kanban.jirarestclient.Issue;
+import club.kanban.j2aa.j2aaconverter.ExportableIssue;
+import club.kanban.j2aa.j2aaconverter.J2aaConverter;
+import club.kanban.j2aa.jirarestclient.BoardConfig;
+import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
+import club.kanban.j2aa.jirarestclient.Issue;
 import club.kanban.jirarestclient.Utils;
 import net.rcarz.jiraclient.JiraException;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,13 +22,13 @@ class J2aaConverterTest {
 
     @BeforeEach
     void setUp() throws IOException, JiraException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        converter = new J2aaConverter();
+        converter = new J2aaConverter(false, new String[]{"epic", "components", "key", "issuetype", "labels", "status", "created", "priority"});
         BoardConfig boardConfig = Utils.getTestJiraResource(BoardConfig.class, "testBoardConfig.json");
         BoardIssuesSet boardIssuesSet = Utils.getTestBoardIssuesSet("testIssuesSet.json");
 
         List<ExportableIssue> exportableIssues = new ArrayList<>(boardIssuesSet.getIssues().size());
         for (Issue issue : boardIssuesSet.getIssues()) {
-            ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig);
+            ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig, false, false);
             exportableIssues.add(exportableIssue);
         }
         converter.setExportableIssues(exportableIssues);

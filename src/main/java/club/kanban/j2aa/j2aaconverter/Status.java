@@ -1,4 +1,4 @@
-package club.kanban.j2aaconverter;
+package club.kanban.j2aa.j2aaconverter;
 
 import lombok.Getter;
 import lombok.Setter;
