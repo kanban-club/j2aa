@@ -64,6 +64,12 @@ public class ExportableIssue {
                 case "issuetype":
                     exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
                     break;
+                case "assignee":
+                    exportableIssue.attributes.put("Assignee", issue.getAssignee() != null ? issue.getAssignee().getAttribute("displayName") : "");
+                    break;
+                case "reporter":
+                    exportableIssue.attributes.put("Reporter", issue.getReporter() != null ? issue.getReporter().getAttribute("displayName") : "");
+                    break;
                 case "priority":
                     exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
                     break;

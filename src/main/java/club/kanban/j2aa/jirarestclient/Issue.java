@@ -13,30 +13,20 @@ import java.util.Iterator;
 import java.util.List;
 
 public class Issue extends JiraResource {
-    @Getter
-    private String key;
-    @Getter
-    private String summary;
-    @Getter
-    private Date created;
-    @Getter
-    private JiraResource priority;
-    @Getter
-    private JiraResource status;
-    @Getter
-    private JiraResource project;
-    @Getter
-    private JiraResource issueType;
-    @Getter
-    private Issue epic;
-    @Getter
-    private List<String> labels;
-    @Getter
-    private List<JiraResource> components;
-    @Getter
-    List<ChangeLogItem> statusChanges;
-    @Getter
-    List<ChangeLogItem> flaggedChanges;
+    @Getter private String key;
+    @Getter private String summary;
+    @Getter private Date created;
+    @Getter private JiraResource priority;
+    @Getter private JiraResource status;
+    @Getter private JiraResource project;
+    @Getter private JiraResource issueType;
+    @Getter private JiraResource assignee;
+    @Getter private JiraResource reporter;
+    @Getter private Issue epic;
+    @Getter private List<String> labels;
+    @Getter private List<JiraResource> components;
+    @Getter List<ChangeLogItem> statusChanges;
+    @Getter List<ChangeLogItem> flaggedChanges;
 
     /**
      * Creates a new Agile Issue resource.
@@ -60,45 +50,54 @@ public class Issue extends JiraResource {
             Iterator<String> keys = jsonFields.keys();
             while (keys.hasNext()) {
                 String jsonKey = keys.next();
-                switch (jsonKey) {
-                    case "summary":
-                        summary = Field.getString(jsonFields.get(jsonKey));
-                        break;
-                    case "created":
-                        created = getDateTime(jsonFields.get(jsonKey));
-                        break;
-                    case "priority":
-                        priority = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
-                        break;
-                    case "status":
-                        status = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
-                        break;
-                    case "project":
-                        project = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
-                        break;
-                    case "issuetype":
-                        issueType = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
-                        break;
-                    case "epic":
-                        epic = new Issue(getRestClient(), jsonFields.getJSONObject(jsonKey));
-                        break;
-                    case "labels":
-                        labels = new ArrayList<>(((JSONArray) jsonFields.get(jsonKey)).size());
-                        for (Object label : (JSONArray) jsonFields.get(jsonKey)) {
-                            labels.add((String) label);
-                        }
-                        break;
-                    case "components":
-                        Object objArray = jsonFields.get(jsonKey);
-                        if (((JSONArray) objArray).size() > 0) {
-                            components = new ArrayList<>(((JSONArray) objArray).size());
-                            for (int i = 0; i < ((JSONArray) objArray).size(); i++) {
-                                JiraResource component = new JiraResource(getRestClient(), ((JSONArray) objArray).getJSONObject(i));
-                                components.add(component);
+
+                try {
+                    switch (jsonKey) {
+                        case "summary":
+                            summary = Field.getString(jsonFields.get(jsonKey));
+                            break;
+                        case "created":
+                            created = getDateTime(jsonFields.get(jsonKey));
+                            break;
+                        case "priority":
+                            priority = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "status":
+                            status = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "project":
+                            project = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "issuetype":
+                            issueType = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "assignee":
+                            assignee = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "reporter":
+                            reporter = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "epic":
+                            epic = new Issue(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            break;
+                        case "labels":
+                            labels = new ArrayList<>(((JSONArray) jsonFields.get(jsonKey)).size());
+                            for (Object label : (JSONArray) jsonFields.get(jsonKey)) {
+                                labels.add((String) label);
                             }
-                        }
-                        break;
-                }
+                            break;
+                        case "components":
+                            Object objArray = jsonFields.get(jsonKey);
+                            if (((JSONArray) objArray).size() > 0) {
+                                components = new ArrayList<>(((JSONArray) objArray).size());
+                                for (int i = 0; i < ((JSONArray) objArray).size(); i++) {
+                                    JiraResource component = new JiraResource(getRestClient(), ((JSONArray) objArray).getJSONObject(i));
+                                    components.add(component);
+                                }
+                            }
+                            break;
+                    }
+                } catch (net.sf.json.JSONException ignored) {}
             }
 
             addAttributes(jsonFields);
