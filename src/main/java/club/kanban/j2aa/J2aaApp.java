@@ -128,8 +128,16 @@ public class J2aaApp extends JFrame {
         appFrame.getRootPane().setDefaultButton(startButton);
 
         startButton.addActionListener(actionEvent -> {
-            Runnable r = this::doConversion;
-            r.run();
+            new Thread(() -> {
+                doConversion();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        revalidate();
+                        repaint();
+                    }
+                });
+            }).start();
         });
         saveSettingsButton.addActionListener(actionEvent -> {
             JFileChooser chooser = new JFileChooser();
@@ -262,7 +270,7 @@ public class J2aaApp extends JFrame {
 
     public void logToUI(String msg) {
         fLog.append(msg + "\n");
-        fLog.update(fLog.getGraphics());
+        fLog.setCaretPosition(fLog.getDocument().getLength());
     }
 
     /**
@@ -394,23 +402,17 @@ public class J2aaApp extends JFrame {
             return;
         }
 
-        startButton.setEnabled(false);
-        startButton.update(startButton.getGraphics());
-
         fLog.setText(null);
+        startButton.setEnabled(false);
+
         logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
         logger.info(String.format("Пользователь %s", getUserName()));
-//        fLog.update(fLog.getGraphics());
 
         // Подключаемся к доске и конвертируем данные
         try {
-            startButton.setEnabled(false);
-            startButton.update(startButton.getGraphics());
-
             JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(getUserName(), getPassword()));
             Board board = Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
             logger.info(String.format("Установлено соединение с доской: %s", board.getName()));
-//            fLog.update(fLog.getGraphics());
 
             Date startDate = new Date();
 
@@ -420,7 +422,6 @@ public class J2aaApp extends JFrame {
                 Date endDate = new Date();
                 long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
                 logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
-//                fLog.update(fLog.getGraphics());
 
                 // экспортируем данные в файл
                 converter.export2File(outputFile);
@@ -442,13 +443,10 @@ public class J2aaApp extends JFrame {
                 }
             } else
                 logger.info(e.getMessage());
-
         } catch (IOException e) {
             logger.info(e.getMessage());
-        } finally {
-            startButton.setEnabled(true);
-            startButton.update(startButton.getGraphics());
         }
+        startButton.setEnabled(true);
     }
 
     public void setAppTitle() {

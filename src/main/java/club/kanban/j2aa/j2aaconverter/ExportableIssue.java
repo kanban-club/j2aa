@@ -154,7 +154,7 @@ public class ExportableIssue {
                 if (columnId > maxColumnId)
                     maxColumnId = columnId;
             } else {
-                logger.debug(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске", issue.getKey(), status.getName()));
+                logger.info(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске", issue.getKey(), status.getName()));
             }
         }
 
