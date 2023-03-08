@@ -117,6 +117,8 @@ public class J2aaApp extends JFrame {
     private JPasswordField fPassword;
     private JLabel labelBoardUrl;
 
+    private Thread conversionThread;
+
     public J2aaApp() {
         super();
 
@@ -128,16 +130,21 @@ public class J2aaApp extends JFrame {
         appFrame.getRootPane().setDefaultButton(startButton);
 
         startButton.addActionListener(actionEvent -> {
-            new Thread(() -> {
-                doConversion();
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
+            if (conversionThread == null) {
+                conversionThread = new Thread(() -> {
+                    doConversion();
+                    SwingUtilities.invokeLater(() -> {
                         revalidate();
                         repaint();
-                    }
+                    });
                 });
-            }).start();
+                conversionThread.start();
+            } else {
+                conversionThread.stop();
+                conversionThread = null;
+                logger.info("Конвертация прервана");
+                enableControls(true);
+            }
         });
         saveSettingsButton.addActionListener(actionEvent -> {
             JFileChooser chooser = new JFileChooser();
@@ -175,13 +182,13 @@ public class J2aaApp extends JFrame {
                     fLog.setText(null);
                     lastConnFileDir = chooser.getSelectedFile().getParent();
                 } catch (IOException ex) {
-                    showMessageDialog(getAppFrame(), String.format("не удалось прочитать файл %s", chooser.getSelectedFile().getName()), "Ошибка чтения файла", ERROR_MESSAGE);
+                    showMessageDialog(getAppFrame(), String.format("Не удалось прочитать файл %s", chooser.getSelectedFile().getName()), "Ошибка чтения файла", ERROR_MESSAGE);
                 }
             }
         });
         selectOutputFileButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle("выберите расположение и имя файла");
+            chooser.setDialogTitle("Выберите расположение и имя файла");
             chooser.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
             chooser.setSelectedFile(new File(fOutputFileName.getText()));
             chooser.setCurrentDirectory(new File(fOutputFileName.getText()).getAbsoluteFile().getParentFile());
@@ -403,7 +410,7 @@ public class J2aaApp extends JFrame {
         }
 
         fLog.setText(null);
-        startButton.setEnabled(false);
+        enableControls(false);
 
         logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
         logger.info(String.format("Пользователь %s", getUserName()));
@@ -446,9 +453,23 @@ public class J2aaApp extends JFrame {
         } catch (IOException e) {
             logger.info(e.getMessage());
         }
-        startButton.setEnabled(true);
+        enableControls(true);
     }
 
+    private void enableControls(boolean state) {
+        if (state)
+            startButton.setText("Конвертировать");
+        else
+            startButton.setText("Остановить");
+        loadSettingsButton.setEnabled(state);
+        saveSettingsButton.setEnabled(state);
+        selectOutputFileButton.setEnabled(state);
+        fBoardURL.setEnabled(state);
+        fJQLSubFilter.setEnabled(state);
+        fOutputFileName.setEnabled(state);
+        fUsername.setEnabled(state);
+        fPassword.setEnabled(state);
+    }
     public void setAppTitle() {
         String newTitle = DEFAULT_APP_TITLE
                 + ((!version.isEmpty()) ? " v" + version : "")
