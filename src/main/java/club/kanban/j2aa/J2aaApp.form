@@ -34,7 +34,9 @@
           <component id="14131" class="javax.swing.JTextArea" binding="fLog">
             <constraints/>
             <properties>
+              <lineWrap value="true"/>
               <text value=""/>
+              <wrapStyleWord value="true"/>
             </properties>
           </component>
         </children>

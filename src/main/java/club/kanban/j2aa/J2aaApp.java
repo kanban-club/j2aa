@@ -1,5 +1,8 @@
 package club.kanban.j2aa;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
 import club.kanban.j2aa.jirarestclient.Board;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -43,7 +46,8 @@ import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
 @SpringBootApplication
-public class J2aaApp {
+public class J2aaApp extends JFrame {
+    private static final Logger logger = LoggerFactory.getLogger(J2aaApp.class);
     public static final String VERSION_KEY = "version";
     public static final String CONFIG_FILE_NAME = ".j2aa";
     public static final String ARG_PROFILE = "profile";
@@ -57,8 +61,6 @@ public class J2aaApp {
 
     public static final String KEY_USER_NAME = "default.username";
     public static final String KEY_PASSWORD = "default.password";
-
-    private static final Logger logger = LoggerFactory.getLogger(J2aaApp.class);
 
     @Getter
     private final JFrame appFrame;
@@ -230,6 +232,17 @@ public class J2aaApp {
      * 3. Делаем приложение видимым
      */
     public void init() {
+        // Инициализация UI логгера
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        for (ch.qos.logback.classic.Logger logger : loggerContext.getLoggerList()) {
+            for (Iterator<Appender<ILoggingEvent>> index = logger.iteratorForAppenders(); index.hasNext(); ) {
+                Appender<ILoggingEvent> appender = index.next();
+                if (appender instanceof UILogger)
+                    ((UILogger) appender).setJ2aaApp(this);
+            }
+        }
+
+        // Чтение файла с профилем если указан параметр --profile
         String profileName = context.getEnvironment().getProperty(ARG_PROFILE);
 
         if (profileName != null) {
@@ -245,6 +258,11 @@ public class J2aaApp {
             this.setAppTitle();
         }
         getAppFrame().setVisible(true);
+    }
+
+    public void logToUI(String msg) {
+        fLog.append(msg + "\n");
+        fLog.update(fLog.getGraphics());
     }
 
     /**
@@ -380,10 +398,9 @@ public class J2aaApp {
         startButton.update(startButton.getGraphics());
 
         fLog.setText(null);
-
-        fLog.append(String.format("Подключаемся к серверу: %s\n", jiraUrl));
-        fLog.append(String.format("Пользователь %s\n", getUserName()));
-        fLog.update(fLog.getGraphics());
+        logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
+        logger.info(String.format("Пользователь %s", getUserName()));
+//        fLog.update(fLog.getGraphics());
 
         // Подключаемся к доске и конвертируем данные
         try {
@@ -392,45 +409,42 @@ public class J2aaApp {
 
             JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(getUserName(), getPassword()));
             Board board = Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
-            fLog.append(String.format("Установлено соединение с доской: %s\n", board.getName()));
-            fLog.update(fLog.getGraphics());
+            logger.info(String.format("Установлено соединение с доской: %s", board.getName()));
+//            fLog.update(fLog.getGraphics());
 
             Date startDate = new Date();
 
-            converter.importFromJira(board, getJqlSubFilter(), (msg) -> {
-                fLog.append(msg);
-                fLog.update(fLog.getGraphics());
-            });
+            converter.importFromJira(board, getJqlSubFilter());
 
             if (converter.getExportableIssues().size() > 0) {
                 Date endDate = new Date();
                 long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
-                fLog.append(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек\n", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
-                fLog.update(fLog.getGraphics());
+                logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
+//                fLog.update(fLog.getGraphics());
 
                 // экспортируем данные в файл
                 converter.export2File(outputFile);
 
-                fLog.append(String.format("\nДанные выгружены в файл:\n%s\n", outputFile.getAbsoluteFile()));
+                logger.info(String.format("Данные выгружены в файл:\n%s", outputFile.getAbsoluteFile()));
             } else
-                fLog.append("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
+                logger.info("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
         } catch (JiraException e) {
             Exception ex = (Exception) e.getCause();
             if (ex instanceof SSLPeerUnverifiedException)
-                fLog.append(String.format("SSL peer unverified: %s\n", ex.getMessage()));
+                logger.info(String.format("SSL peer unverified: %s", ex.getMessage()));
             else if (ex instanceof UnknownHostException)
-                fLog.append(String.format("Не удается соединиться с сервером %s\n", ex.getMessage()));
+                logger.info(String.format("Не удается соединиться с сервером %s", ex.getMessage()));
             else if (ex instanceof RestException) {
                 if (((RestException) ex).getHttpStatusCode() == 401) {
-                    fLog.append(ex.getMessage().substring(0, 56));
+                    logger.info(ex.getMessage().substring(0, 56));
                 } else {
-                    fLog.append(ex.getMessage());
+                    logger.info(ex.getMessage());
                 }
             } else
-                fLog.append(e.getMessage());
+                logger.info(e.getMessage());
 
         } catch (IOException e) {
-            fLog.append(e.getMessage());
+            logger.info(e.getMessage());
         } finally {
             startButton.setEnabled(true);
             startButton.update(startButton.getGraphics());
@@ -469,7 +483,9 @@ public class J2aaApp {
         final JScrollPane scrollPane1 = new JScrollPane();
         rootPanel.add(scrollPane1, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         fLog = new JTextArea();
+        fLog.setLineWrap(true);
         fLog.setText("");
+        fLog.setWrapStyleWord(true);
         scrollPane1.setViewportView(fLog);
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));

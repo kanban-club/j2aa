@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.Setter;
 import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ import java.util.List;
 
 @Service
 public class J2aaConverter {
+    private static final Logger logger = LoggerFactory.getLogger(J2aaConverter.class);
     @Getter
     private final String[] httpFields;
     @Getter
@@ -32,8 +35,8 @@ public class J2aaConverter {
     @Getter
     private BoardConfig boardConfig;
 
-    private final static String DEFAULT_USE_MAX_COLUMN =  "${use-max-column:false}";
-    private final static String DEFAULT_HTTP_FIELDS =  "${http-fields:issuetype,labels,epic}";
+    private final static String DEFAULT_USE_MAX_COLUMN = "${use-max-column:false}";
+    private final static String DEFAULT_HTTP_FIELDS = "${http-fields:issuetype,labels,epic}";
     private final static String[] REQUIRED_HTTP_FIELDS = {"status", "created"};
 
     @Getter
@@ -59,11 +62,9 @@ public class J2aaConverter {
      *
      * @param board           - Board
      * @param jqlSubFilter    - Sub Filter
-     * @param progressMonitor - Callback procedure
      * @throws JiraException - Jira Exception
      */
-    public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
-
+    public void importFromJira(Board board, String jqlSubFilter) throws JiraException {
         boardConfig = board.getBoardConfig();
         exportableIssues = null;
 
@@ -87,13 +88,13 @@ public class J2aaConverter {
                         ExportableIssue exportableIssue = ExportableIssue.fromIssue(this, issue);
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
-                        progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));
+                        logger.info(String.format("Не удается конвертировать %s: %s", issue.getKey(), e.getMessage()));
                     }
                 }
 
                 exportableIssues.addAll(exportableIssuesSet);
                 startAt += boardIssuesSet.getMaxResults();
-                progressMonitor.update(String.format("%d из %d issues получено\n", exportableIssues.size(), boardIssuesSet.getTotal()));
+                logger.info(String.format("%d из %d issues получено", exportableIssues.size(), boardIssuesSet.getTotal()));
             }
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }

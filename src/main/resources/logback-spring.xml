@@ -5,9 +5,12 @@
         </encoder>
     </appender>
 
+    <appender name="UI" class="club.kanban.j2aa.UILogger"/>
+
     <logger name="jdbc" level="OFF" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="UI" />
     </root>
 </configuration>

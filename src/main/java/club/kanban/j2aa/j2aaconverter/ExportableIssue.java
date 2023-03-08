@@ -3,6 +3,8 @@ package club.kanban.j2aa.j2aaconverter;
 import club.kanban.j2aa.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -18,7 +20,7 @@ import java.util.stream.Collectors;
  */
 
 public class ExportableIssue {
-
+    private static final Logger logger = LoggerFactory.getLogger(ExportableIssue.class);
     @Getter
     private String key;
     @Getter
@@ -152,8 +154,7 @@ public class ExportableIssue {
                 if (columnId > maxColumnId)
                     maxColumnId = columnId;
             } else {
-                // DEBUG
-                System.out.println(issue.getKey() + " Found status not associated with any column: " + status.getName());
+                logger.debug(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске", issue.getKey(), status.getName()));
             }
         }
 
