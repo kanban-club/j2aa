@@ -3,6 +3,7 @@ package club.kanban.j2aa.j2aaconverter;
 import club.kanban.j2aa.jirarestclient.*;
 import lombok.Getter;
 import net.rcarz.jiraclient.JiraException;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDate;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
  */
 
 public class ExportableIssue {
-    private final static boolean SHOW_ISSUE_LINK = true;
+
     @Getter
     private String key;
     @Getter
@@ -31,45 +32,58 @@ public class ExportableIssue {
     @Getter
     private Long blockedDays;
     @Getter
-    private BoardConfig boardConfig;
+    private J2aaConverter converter;
 
-    public static ExportableIssue fromIssue(
-            Issue issue,
-            BoardConfig boardConfig,
-            boolean useMaxColumn,
-            boolean showIssueName
-    ) throws JiraException {
+    public static ExportableIssue fromIssue(J2aaConverter converter, Issue issue) throws JiraException {
         ExportableIssue exportableIssue = new ExportableIssue();
-        exportableIssue.boardConfig = boardConfig;
+        exportableIssue.converter = converter;
 
         exportableIssue.key = issue.getKey();
-        exportableIssue.name = (showIssueName && issue.getSummary() != null) ? issue.getSummary() : "";
+        exportableIssue.name = "";
         exportableIssue.link = "";
-        if (SHOW_ISSUE_LINK) {
-            try {
-                URL restApiUrl = new URL(issue.getSelfURL());
-                exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
-                        + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
-            } catch (MalformedURLException ignored) {
+        try {
+            URL restApiUrl = new URL(issue.getSelfURL());
+            exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
+                    + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+        } catch (MalformedURLException ignored) {
+        }
+
+        //Считываем запрашиваемые поля для Issue
+        exportableIssue.attributes = new LinkedHashMap<>();
+        for(String field : converter.getHttpFields()) {
+            switch (field) {
+                case "projectkey":
+                    exportableIssue.attributes.put("Project Key", issue.getProject() != null ? issue.getProject().getName() : "");
+                    break;
+                case "summary":
+                    exportableIssue.name = (issue.getSummary() != null) ? issue.getSummary() : "";
+                    break;
+                case "project":
+                    exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
+                    break;
+                case "issuetype":
+                    exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
+                    break;
+                case "priority":
+                    exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
+                    break;
+                case "labels":
+                    exportableIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
+                    break;
+                case "components":
+                    exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents()
+                            .stream()
+                            .map(JiraResource::getName)
+                            .collect(Collectors.toList()) : new ArrayList<>(0));
+                    break;
+                case "epic":
+                    exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
+                    exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
+                    break;
             }
         }
 
-        //Считываем дополнительные поля для Issue
-        exportableIssue.attributes = new LinkedHashMap<>();
-
-        exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
-        exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
-        exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
-        exportableIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
-        exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents()
-                .stream()
-                .map(JiraResource::getName)
-                .collect(Collectors.toList()) : new ArrayList<>(0));
-
-        exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
-        exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
-
-        exportableIssue.initTransitionsLog(issue, boardConfig, useMaxColumn);
+        exportableIssue.initTransitionsLog(issue, converter.getBoardConfig(), converter.getUseMaxColumn());
         exportableIssue.initBlockedDays(issue);
         return exportableIssue;
     }

@@ -36,7 +36,7 @@ class IssueTest {
         issue = new Issue(null, Utils.getJSONObjectFromResource("testIssue.json"));
 
         // конвертировать Issue в BoardIssue
-        ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig, false, false);
+        ExportableIssue exportableIssue = ExportableIssue.fromIssue(null, issue);
 
         // загрузка нескольких Issues в BoardIssuesSet
         JSONObject jsonIssuesSet = (JSONObject) JSONSerializer.toJSON(Utils.getJSONObjectFromResource("testIssuesSet.json"));

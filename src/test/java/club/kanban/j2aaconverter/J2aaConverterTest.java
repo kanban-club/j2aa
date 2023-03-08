@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 class J2aaConverterTest {
@@ -22,13 +23,15 @@ class J2aaConverterTest {
 
     @BeforeEach
     void setUp() throws IOException, JiraException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        converter = new J2aaConverter(false, new String[]{"epic", "components", "key", "issuetype", "labels", "status", "created", "priority"});
+        converter = new J2aaConverter(
+                new String[] {"issuetype", "labels", "epic"},
+                false);
         BoardConfig boardConfig = Utils.getTestJiraResource(BoardConfig.class, "testBoardConfig.json");
         BoardIssuesSet boardIssuesSet = Utils.getTestBoardIssuesSet("testIssuesSet.json");
 
         List<ExportableIssue> exportableIssues = new ArrayList<>(boardIssuesSet.getIssues().size());
         for (Issue issue : boardIssuesSet.getIssues()) {
-            ExportableIssue exportableIssue = ExportableIssue.fromIssue(issue, boardConfig, false, false);
+            ExportableIssue exportableIssue = ExportableIssue.fromIssue(converter, issue);
             exportableIssues.add(exportableIssue);
         }
         converter.setExportableIssues(exportableIssues);

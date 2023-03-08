@@ -216,7 +216,7 @@ public class J2aaApp {
             }
         }
 
-        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaConfig.class)
+        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaConfiguration.class)
                 .headless(false)
                 .run(args);
         J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);

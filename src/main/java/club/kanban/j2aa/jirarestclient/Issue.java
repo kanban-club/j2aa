@@ -24,6 +24,8 @@ public class Issue extends JiraResource {
     @Getter
     private JiraResource status;
     @Getter
+    private JiraResource project;
+    @Getter
     private JiraResource issueType;
     @Getter
     private Issue epic;
@@ -70,6 +72,9 @@ public class Issue extends JiraResource {
                         break;
                     case "status":
                         status = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                        break;
+                    case "project":
+                        project = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
                         break;
                     case "issuetype":
                         issueType = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));

@@ -21,16 +21,20 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class J2aaConverter {
-    private final boolean USE_MAX_COLUMN;
-    private final String[] HTTP_FIELDS;
+    @Getter
+    private final String[] httpFields;
+    @Getter
+    private final Boolean useMaxColumn;
+    @Getter
+    private BoardConfig boardConfig;
 
     private final static String DEFAULT_USE_MAX_COLUMN =  "${use-max-column:false}";
-    private final static String DEFAULT_HTTP_FIELDS =  "${http-fields:epic,components,key,issuetype,labels,status,created,priority}";
+    private final static String DEFAULT_HTTP_FIELDS =  "${http-fields:issuetype,labels,epic}";
+    private final static String[] REQUIRED_HTTP_FIELDS = {"status", "created"};
 
     @Getter
     @Setter
@@ -43,10 +47,11 @@ public class J2aaConverter {
      * @param httpFields  поля для http запроса
      */
     public J2aaConverter(
-            @Value(DEFAULT_USE_MAX_COLUMN) boolean useMaxColumn,
-            @Value(DEFAULT_HTTP_FIELDS) String[] httpFields) {
-        USE_MAX_COLUMN = useMaxColumn;
-        HTTP_FIELDS = httpFields;
+            @Value(DEFAULT_HTTP_FIELDS) String[] httpFields,
+            @Value(DEFAULT_USE_MAX_COLUMN) boolean useMaxColumn
+    ) {
+        this.useMaxColumn = useMaxColumn;
+        this.httpFields = httpFields;
     }
 
     /**
@@ -59,14 +64,19 @@ public class J2aaConverter {
      */
     public void importFromJira(Board board, String jqlSubFilter, ProgressMonitor progressMonitor) throws JiraException {
 
-        BoardConfig boardConfig = board.getBoardConfig();
+        boardConfig = board.getBoardConfig();
+        exportableIssues = null;
+
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
-        exportableIssues = null;
-        do {
-            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, HTTP_FIELDS);
+         do {
+             String[] actualHttpFields = new String[REQUIRED_HTTP_FIELDS.length + httpFields.length];
+             System.arraycopy(REQUIRED_HTTP_FIELDS,0, actualHttpFields, 0, REQUIRED_HTTP_FIELDS.length);
+             System.arraycopy(httpFields, 0, actualHttpFields, REQUIRED_HTTP_FIELDS.length, httpFields.length);
 
-            if (boardIssuesSet.getIssues().size() > 0) {
+             boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, actualHttpFields);
+
+             if (boardIssuesSet.getIssues().size() > 0) {
                 if (exportableIssues == null)
                     exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
 
@@ -74,10 +84,7 @@ public class J2aaConverter {
                 List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
                 for (Issue issue : boardIssuesSet.getIssues()) {
                     try {
-                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(
-                                issue, boardConfig,
-                                USE_MAX_COLUMN,
-                                Arrays.asList(HTTP_FIELDS).contains("summary"));
+                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(this, issue);
                         exportableIssuesSet.add(exportableIssue);
                     } catch (Exception e) {
                         progressMonitor.update(String.format("Не удается конвертировать %s: %s\n", issue.getKey(), e.getMessage()));

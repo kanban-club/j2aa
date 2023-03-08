@@ -13,5 +13,5 @@ import org.springframework.context.annotation.*;
         @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
 })
 
-public class J2aaConfig {
+public class J2aaConfiguration {
 }

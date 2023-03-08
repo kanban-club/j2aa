@@ -18,10 +18,10 @@ public class JsonAdapter extends AbstractAdapter {
     @Override
     public String getHeaders(ExportableIssue expIssue) {
         List<String> headers = new ArrayList<>(3
-                + expIssue.getBoardConfig().getBoardColumns().size()
+                + expIssue.getConverter().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
         headers.addAll(Arrays.asList("ID", "Link", "Name"));
-        for (BoardColumn boardColumn : expIssue.getBoardConfig().getBoardColumns())
+        for (BoardColumn boardColumn : expIssue.getConverter().getBoardConfig().getBoardColumns())
             headers.add(boardColumn.getName());
         headers.addAll(expIssue.getAttributes().keySet());
         return "[" + headers.stream()
@@ -33,13 +33,13 @@ public class JsonAdapter extends AbstractAdapter {
     @Override
     public String getValues(ExportableIssue expIssue) {
         List<String> values = new ArrayList<>(3
-                + expIssue.getBoardConfig().getBoardColumns().size()
+                + expIssue.getConverter().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
         values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), expIssue.getName()));
 
         DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
 
-        for (BoardColumn boardColumn : expIssue.getBoardConfig().getBoardColumns()) {
+        for (BoardColumn boardColumn : expIssue.getConverter().getBoardConfig().getBoardColumns()) {
             Date date = expIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
             values.add(date != null ? df.format(date) : "");
         }
