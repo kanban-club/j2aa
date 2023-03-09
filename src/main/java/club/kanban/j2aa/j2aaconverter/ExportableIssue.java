@@ -84,6 +84,12 @@ public class ExportableIssue {
                             .map(JiraResource::getName)
                             .collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
+                case "fixVersions":
+                    exportableIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions()
+                            .stream()
+                            .map(JiraResource::getName)
+                            .collect(Collectors.toList()) : new ArrayList<>(0));
+                    break;
                 case "epic":
                     exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
                     exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");

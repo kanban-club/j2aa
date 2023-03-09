@@ -40,6 +40,8 @@ public class Issue extends JiraResource {
     @Getter
     private List<JiraResource> components;
     @Getter
+    private List<JiraResource> fixVersions;
+    @Getter
     List<ChangeLogItem> statusChanges;
     @Getter
     List<ChangeLogItem> flaggedChanges;
@@ -54,7 +56,18 @@ public class Issue extends JiraResource {
         super(restclient, json);
     }
 
-    public <T> List<T> getObjectFromArray(Class<T> type, JSONArray jsonArray) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, JiraException {
+    /**
+     * Возвращает из заданного JSON массива список элементов заданного типа
+     * @param type тип элемента, который ожидается в массиве. Возможные значения либо String, либо JiraResource
+     * @param jsonArray JSON массив
+     * @return список элементов заданного типа, извлеченных из JSON массива
+     * @throws JiraException
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    public <T> List<T> getObjectFromArray(Class<T> type, JSONArray jsonArray) throws JiraException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         List<T> objects = new ArrayList<>(jsonArray.size());
         for (Object object : jsonArray) {
             if (object instanceof String)
@@ -64,7 +77,7 @@ public class Issue extends JiraResource {
                 T jiraResource = constructor.newInstance(getRestClient(), object);
                 objects.add(jiraResource);
             } else
-                throw new JiraException("неизвестный тип параметра в JSONObject");
+                throw new JiraException("Неизвестный тип параметра в JSONObject");
         }
         return objects;
     }
@@ -128,6 +141,9 @@ public class Issue extends JiraResource {
 //                                    components.add(component);
 //                                }
 //                            } // TODO Убрать закомментированный код
+                            break;
+                        case "fixVersions":
+                            fixVersions = getObjectFromArray(JiraResource.class, (JSONArray) jsonFields.get(jsonKey));
                             break;
                     }
                 } catch (Exception ignored) {
