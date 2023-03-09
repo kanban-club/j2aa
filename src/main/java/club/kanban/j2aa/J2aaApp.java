@@ -147,7 +147,7 @@ public class J2aaApp extends JFrame {
                 });
                 conversionThread.start();
             } else {
-                conversionThread.stop();
+                conversionThread.stop(); // TODO разобраться как правильно останавливать тред
                 conversionThread = null;
                 logger.info("Конвертация прервана");
                 enableControls(true);
@@ -460,6 +460,7 @@ public class J2aaApp extends JFrame {
         } catch (IOException e) {
             logger.info(e.getMessage());
         }
+        conversionThread = null;
         enableControls(true);
     }
 
