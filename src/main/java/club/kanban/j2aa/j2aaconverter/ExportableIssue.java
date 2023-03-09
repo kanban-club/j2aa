@@ -55,13 +55,13 @@ public class ExportableIssue {
         for(String field : converter.getHttpFields()) {
             switch (field) {
                 case "projectkey":
-                    exportableIssue.attributes.put("Project Key", issue.getProject() != null ? issue.getProject().getName() : "");
+                    exportableIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
                     break;
                 case "summary":
                     exportableIssue.name = (issue.getSummary() != null) ? issue.getSummary() : "";
                     break;
                 case "project":
-                    exportableIssue.attributes.put("Project", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
+                    exportableIssue.attributes.put("Project", issue.getProject() != null ? issue.getProject().getName() : "");
                     break;
                 case "issuetype":
                     exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
