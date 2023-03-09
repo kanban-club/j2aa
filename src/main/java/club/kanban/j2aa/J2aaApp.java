@@ -123,6 +123,13 @@ public class J2aaApp extends JFrame {
         super();
 
         appFrame = new JFrame();
+
+        URL imgURL = getClass().getResource("/app-icon.jpg");
+        if (imgURL != null) {
+            ImageIcon appIcon = new ImageIcon(imgURL);
+            getAppFrame().setIconImage(appIcon.getImage());
+        }
+
         appFrame.setContentPane(rootPanel);
         appFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         appFrame.setPreferredSize(new Dimension(800, 450));
@@ -133,10 +140,10 @@ public class J2aaApp extends JFrame {
             if (conversionThread == null) {
                 conversionThread = new Thread(() -> {
                     doConversion();
-                    SwingUtilities.invokeLater(() -> {
-                        revalidate();
-                        repaint();
-                    });
+//                    SwingUtilities.invokeLater(() -> {// TODO убрать закомментрированный код
+//                        revalidate();
+//                        repaint();
+//                    });
                 });
                 conversionThread.start();
             } else {
@@ -470,6 +477,7 @@ public class J2aaApp extends JFrame {
         fUsername.setEnabled(state);
         fPassword.setEnabled(state);
     }
+
     public void setAppTitle() {
         String newTitle = DEFAULT_APP_TITLE
                 + ((!version.isEmpty()) ? " v" + version : "")
