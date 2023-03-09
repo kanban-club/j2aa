@@ -35,8 +35,8 @@ public class J2aaConverter {
     @Getter
     private BoardConfig boardConfig;
 
-    private final static String DEFAULT_USE_MAX_COLUMN = "${use-max-column:false}";
-    private final static String DEFAULT_HTTP_FIELDS = "${http-fields:issuetype,labels,epic}";
+    private final static String DEFAULT_USE_MAX_COLUMN = "${converter.use-max-column:false}";
+    private final static String DEFAULT_HTTP_FIELDS = "${converter.jira-fields:issuetype,labels,epic}";
     private final static String[] REQUIRED_HTTP_FIELDS = {"status", "created"};
 
     @Getter
