@@ -44,10 +44,9 @@ public class J2aaConverter {
     private List<ExportableIssue> exportableIssues;
 
     /**
-     *
      * @param useMaxColumn true - в качестве предельной колонки используется максимальный достигнутый issue статус
      *                     false - в качестве предельной колонки используется текущий статус issue
-     * @param httpFields  поля для http запроса
+     * @param httpFields   поля для http запроса
      */
     public J2aaConverter(
             @Value(DEFAULT_HTTP_FIELDS) String[] httpFields,
@@ -60,8 +59,8 @@ public class J2aaConverter {
     /**
      * Get set of issues for the board
      *
-     * @param board           - Board
-     * @param jqlSubFilter    - Sub Filter
+     * @param board        - Board
+     * @param jqlSubFilter - Sub Filter
      * @throws JiraException - Jira Exception
      */
     public void importFromJira(Board board, String jqlSubFilter) throws JiraException, InterruptedException {
@@ -70,35 +69,35 @@ public class J2aaConverter {
 
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
-         do {
-             if (Thread.currentThread().isInterrupted()) {
-                 throw new InterruptedException();
-             }
-             String[] actualHttpFields = new String[REQUIRED_HTTP_FIELDS.length + httpFields.length];
-             System.arraycopy(REQUIRED_HTTP_FIELDS,0, actualHttpFields, 0, REQUIRED_HTTP_FIELDS.length);
-             System.arraycopy(httpFields, 0, actualHttpFields, REQUIRED_HTTP_FIELDS.length, httpFields.length);
-
-             boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, actualHttpFields);
-
-             if (boardIssuesSet.getIssues().size() > 0) {
-                if (exportableIssues == null)
-                    exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
-
-                // Map issue's changelog to board columns
-                List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
-                for (Issue issue : boardIssuesSet.getIssues()) {
-                    try {
-                        ExportableIssue exportableIssue = ExportableIssue.fromIssue(this, issue);
-                        exportableIssuesSet.add(exportableIssue);
-                    } catch (Exception e) {
-                        logger.info(String.format("Не удается конвертировать %s: %s", issue.getKey(), e.getMessage()));
-                    }
-                }
-
-                exportableIssues.addAll(exportableIssuesSet);
-                startAt += boardIssuesSet.getMaxResults();
-                logger.info(String.format("%d из %d issues получено", exportableIssues.size(), boardIssuesSet.getTotal()));
+        do {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException();
             }
+            String[] actualHttpFields = new String[REQUIRED_HTTP_FIELDS.length + httpFields.length];
+            System.arraycopy(REQUIRED_HTTP_FIELDS, 0, actualHttpFields, 0, REQUIRED_HTTP_FIELDS.length);
+            System.arraycopy(httpFields, 0, actualHttpFields, REQUIRED_HTTP_FIELDS.length, httpFields.length);
+
+            boardIssuesSet = board.getBoardIssuesSet(jqlSubFilter, startAt, 0, actualHttpFields);
+
+//            if (boardIssuesSet.getIssues().size() > 0) { // TODO удалить закомментиованный код
+            if (exportableIssues == null)
+                exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
+
+            // Map issue's changelog to board columns
+            List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
+            for (Issue issue : boardIssuesSet.getIssues()) {
+                try {
+                    ExportableIssue exportableIssue = ExportableIssue.fromIssue(this, issue);
+                    exportableIssuesSet.add(exportableIssue);
+                } catch (Exception e) {
+                    logger.info(String.format("Не удается конвертировать %s: %s", issue.getKey(), e.getMessage()));
+                }
+            }
+
+            exportableIssues.addAll(exportableIssuesSet);
+            startAt += boardIssuesSet.getMaxResults();
+            logger.info(String.format("%d из %d issues получено", exportableIssues.size(), boardIssuesSet.getTotal()));
+//            }
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
 

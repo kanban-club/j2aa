@@ -56,7 +56,7 @@ public class Board extends JiraResource {
                     ((JSONObject) result).getInt("total"),
                     ((JSONObject) result).getInt("maxResults"));
         } catch (Exception ex) {
-            throw new JiraException("Failed to retreive a list of issues : " + url, ex);
+            throw new JiraException("Не удается получить issues из доски: " + url, ex);
         }
 
         return boardIssuesSet;
