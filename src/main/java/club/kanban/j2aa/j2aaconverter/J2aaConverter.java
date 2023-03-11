@@ -64,13 +64,16 @@ public class J2aaConverter {
      * @param jqlSubFilter    - Sub Filter
      * @throws JiraException - Jira Exception
      */
-    public void importFromJira(Board board, String jqlSubFilter) throws JiraException {
+    public void importFromJira(Board board, String jqlSubFilter) throws JiraException, InterruptedException {
         boardConfig = board.getBoardConfig();
         exportableIssues = null;
 
         BoardIssuesSet boardIssuesSet;
         int startAt = 0;
          do {
+             if (Thread.currentThread().isInterrupted()) {
+                 throw new InterruptedException();
+             }
              String[] actualHttpFields = new String[REQUIRED_HTTP_FIELDS.length + httpFields.length];
              System.arraycopy(REQUIRED_HTTP_FIELDS,0, actualHttpFields, 0, REQUIRED_HTTP_FIELDS.length);
              System.arraycopy(httpFields, 0, actualHttpFields, REQUIRED_HTTP_FIELDS.length, httpFields.length);

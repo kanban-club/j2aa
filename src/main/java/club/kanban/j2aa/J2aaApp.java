@@ -138,19 +138,11 @@ public class J2aaApp extends JFrame {
 
         startButton.addActionListener(actionEvent -> {
             if (conversionThread == null) {
-                conversionThread = new Thread(() -> {
-                    doConversion();
-//                    SwingUtilities.invokeLater(() -> {// TODO убрать закомментрированный код
-//                        revalidate();
-//                        repaint();
-//                    });
-                });
+                conversionThread = new Thread(this::doConversion);
                 conversionThread.start();
             } else {
-                conversionThread.stop(); // TODO разобраться как правильно останавливать тред
-                conversionThread = null;
-                logger.info("Конвертация прервана");
-                enableControls(true);
+                logger.info("Прерывание конвертации ...");
+                conversionThread.interrupt(); // TODO разобраться как правильно останавливать тред
             }
         });
         saveSettingsButton.addActionListener(actionEvent -> {
@@ -283,8 +275,10 @@ public class J2aaApp extends JFrame {
     }
 
     public void logToUI(String msg) {
-        fLog.append(msg + "\n");
-        fLog.setCaretPosition(fLog.getDocument().getLength());
+        EventQueue.invokeLater(() -> {
+            fLog.append(msg + "\n");
+            fLog.setCaretPosition(fLog.getDocument().getLength());
+        });
     }
 
     /**
@@ -459,6 +453,8 @@ public class J2aaApp extends JFrame {
                 logger.info(e.getMessage());
         } catch (IOException e) {
             logger.info(e.getMessage());
+        } catch (InterruptedException e) {
+            logger.info("Конвертация прервана");
         }
         conversionThread = null;
         enableControls(true);
