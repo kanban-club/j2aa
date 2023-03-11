@@ -11,7 +11,7 @@ public class UILogger extends AppenderBase<ILoggingEvent> {
     @Override
     protected void append(ILoggingEvent iLoggingEvent) {
         if (j2aaApp != null) {
-            j2aaApp.logToUI(iLoggingEvent.getMessage());
+            j2aaApp.logToUI(iLoggingEvent.getFormattedMessage());
         }
     }
 }
