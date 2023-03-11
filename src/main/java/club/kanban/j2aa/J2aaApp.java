@@ -275,7 +275,7 @@ public class J2aaApp extends JFrame {
     }
 
     public void logToUI(String msg) {
-        EventQueue.invokeLater(() -> {
+        EventQueue.invokeLater(() -> { // или SwingUtilities.invokeLater()
             fLog.append(msg + "\n");
             fLog.setCaretPosition(fLog.getDocument().getLength());
         });
@@ -283,9 +283,9 @@ public class J2aaApp extends JFrame {
 
     /**
      * Загружает профиль подключения из заданного файла.
-     * В случае успеха этот файл становится активным профилем подлчения
+     * В случае успеха этот файл становится активным профилем подключения
      *
-     * @param file Файл для загрухки
+     * @param file Файл для загрузки
      * @throws IOException                      в случае если файл не найден
      * @throws InvalidPropertiesFormatException если файл имеет неверный формат
      */
