@@ -100,10 +100,14 @@ public class J2aaApp extends JFrame {
     @Value("${" + VERSION_KEY + ":}")
     private String version;
 
+    @Value("${converter.jira-fields:issuetype,labels,epic}")
+    private String[] jiraFields;
+
+    @Value("${converter.use-max-column:false}")
+    private boolean useMaxColumn;
+
     @Autowired
     private ApplicationContext context;
-    @Autowired
-    private J2aaConverter converter;
 
     private JPanel rootPanel;
     private JTextField fBoardURL;
@@ -143,7 +147,7 @@ public class J2aaApp extends JFrame {
                 conversionThread.start();
             } else {
                 logger.info("Прерывание конвертации ...");
-                conversionThread.interrupt(); // TODO разобраться как правильно останавливать тред
+                conversionThread.interrupt();
             }
         });
         saveSettingsButton.addActionListener(actionEvent -> {
@@ -423,30 +427,22 @@ public class J2aaApp extends JFrame {
         fLog.setText(null);
         enableControls(false);
 
-        logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
-        logger.info(String.format("Пользователь %s", getUserName()));
-
         // Подключаемся к доске и конвертируем данные
         try {
+            logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
+            logger.info(String.format("Пользователь %s", getUserName()));
+
             JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(getUserName(), getPassword()));
             Board board = Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
-            logger.info(String.format("Установлено соединение с доской: %s", board.getName()));
 
-            Date startDate = new Date();
-
-            converter.importFromJira(board, getJqlSubFilter());
-
-            if (converter.getExportableIssues().size() > 0) {
-                Date endDate = new Date();
-                long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
-                logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек", converter.getExportableIssues().size(), timeInSec, (1.0 * converter.getExportableIssues().size()) / timeInSec));
-
-                // экспортируем данные в файл
-                converter.export2File(outputFile);
-
-                logger.info(String.format("Данные выгружены в файл:\n%s", outputFile.getAbsoluteFile()));
-            } else
-                logger.info("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
+            var converter = new J2aaConverter.Builder()
+                    .setBoard(board)
+                    .setJqlSubFilter(jqlSubFilter)
+                    .setUseMaxColumn(useMaxColumn)
+                    .setFields(jiraFields)
+                    .setOutputFile(outputFile)
+                    .build();
+            converter.doConversion();
         } catch (JiraException e) {
             Exception ex = (Exception) e.getCause();
             if (ex instanceof SSLPeerUnverifiedException)

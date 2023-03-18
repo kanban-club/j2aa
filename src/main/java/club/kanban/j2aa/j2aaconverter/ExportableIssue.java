@@ -52,7 +52,7 @@ public class ExportableIssue {
 
         //Считываем запрашиваемые поля для Issue
         exportableIssue.attributes = new LinkedHashMap<>();
-        for(String field : converter.getHttpFields()) {
+        for(String field : converter.getJiraFields()) {
             switch (field) {
                 case "projectkey":
                     exportableIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
@@ -97,7 +97,7 @@ public class ExportableIssue {
             }
         }
 
-        exportableIssue.initTransitionsLog(issue, converter.getBoardConfig(), converter.getUseMaxColumn());
+        exportableIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getUseMaxColumn());
         exportableIssue.initBlockedDays(issue);
         return exportableIssue;
     }

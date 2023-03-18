@@ -19,4 +19,5 @@ public abstract class FileAdapter {
 
     public abstract String getDefaultExtension();
     public abstract String getDescription();
+    protected FileAdapter(){}
 }

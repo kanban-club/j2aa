@@ -18,10 +18,10 @@ public class JsonAdapter extends FileAdapter {
     @Override
     public String getHeaders(ExportableIssue expIssue) {
         List<String> headers = new ArrayList<>(3
-                + expIssue.getConverter().getBoardConfig().getBoardColumns().size()
+                + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
         headers.addAll(Arrays.asList("ID", "Link", "Name"));
-        for (BoardColumn boardColumn : expIssue.getConverter().getBoardConfig().getBoardColumns())
+        for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns())
             headers.add(boardColumn.getName());
         headers.addAll(expIssue.getAttributes().keySet());
         return "[" + headers.stream()
@@ -46,13 +46,13 @@ public class JsonAdapter extends FileAdapter {
     @Override
     public String getValues(ExportableIssue expIssue) {
         List<String> values = new ArrayList<>(3
-                + expIssue.getConverter().getBoardConfig().getBoardColumns().size()
+                + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
         values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), expIssue.getName()));
 
         DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
 
-        for (BoardColumn boardColumn : expIssue.getConverter().getBoardConfig().getBoardColumns()) {
+        for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns()) {
             Date date = expIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
             values.add(date != null ? df.format(date) : "");
         }
@@ -61,8 +61,8 @@ public class JsonAdapter extends FileAdapter {
             if (v instanceof String) {
                 values.add(formatString((String) v));
             } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
-                values.add("[" + ((List<String>) v).stream()
-                        .map(this::formatString)
+                values.add("[" + ((List<?>) v).stream()
+                        .map(o -> this.formatString(o.toString()))
                         .collect(Collectors.joining("|"))
                         + "]");
             } else {
