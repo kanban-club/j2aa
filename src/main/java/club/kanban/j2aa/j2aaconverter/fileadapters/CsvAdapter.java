@@ -14,18 +14,6 @@ import java.util.stream.Collectors;
 
 @Repository
 public class CsvAdapter extends FileAdapter {
-
-
-    @Override
-    public String getDefaultExtension() {
-        return "csv";
-    }
-
-    @Override
-    public String getDescription() {
-        return "CSV файлы";
-    }
-
     protected CsvAdapter() {
     }
 

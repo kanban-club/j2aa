@@ -5,14 +5,14 @@ public class FileAdapterFactory {
         FileAdapter adapter = null;
 
         for (FileFormat fileFormat: FileFormat.values()) {
-            if (fileFormat.getAdapter().getDefaultExtension().equalsIgnoreCase(fileExtension)) {
+            if (fileFormat.getDefaultExtension().equalsIgnoreCase(fileExtension)) {
                 adapter = fileFormat.getAdapter();
                 break;
             }
         }
 
         if (adapter == null)
-            adapter = new CsvAdapter(); // адаптер по-умолчанию
+            adapter = FileFormat.CSV.getAdapter(); // адаптер по-умолчанию
 
         return adapter;
     }

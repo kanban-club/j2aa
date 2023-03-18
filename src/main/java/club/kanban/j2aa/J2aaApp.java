@@ -196,8 +196,8 @@ public class J2aaApp extends JFrame {
 
             for (FileFormat format : FileFormat.values()) {
                 var filter = new FileNameExtensionFilter(
-                        format.getAdapter().getDescription(),
-                        format.getAdapter().getDefaultExtension());
+                        format.getDescription(),
+                        format.getDefaultExtension());
                 chooser.addChoosableFileFilter(filter);
                 if (format == FileFormat.CSV)
                     chooser.setFileFilter(filter);
@@ -208,7 +208,7 @@ public class J2aaApp extends JFrame {
             if (chooser.showSaveDialog(getAppFrame()) == APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
                 if (FilenameUtils.getExtension(file.getName()).isBlank())
-                    file = new File(file.getAbsoluteFile() + FileFormat.CSV.getAdapter().getDefaultExtension());
+                    file = new File(file.getAbsoluteFile() + FileFormat.CSV.getDefaultExtension());
                 fOutputFileName.setText(file.getAbsolutePath());
                 getData(this);
             }

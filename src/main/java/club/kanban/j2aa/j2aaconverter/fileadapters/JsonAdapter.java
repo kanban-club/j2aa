@@ -30,16 +30,6 @@ public class JsonAdapter extends FileAdapter {
                 + "]";
     }
 
-    @Override
-    public String getDefaultExtension() {
-        return "json";
-    }
-
-    @Override
-    public String getDescription() {
-        return "JSON файлы";
-    }
-
     protected JsonAdapter() {
     }
 
