@@ -1,9 +1,10 @@
-package club.kanban.j2aa.j2aaconverter.adapters;
+package club.kanban.j2aa.j2aaconverter.fileadapters;
 
 import club.kanban.j2aa.j2aaconverter.ExportableIssue;
 
-public abstract class AbstractAdapter {
+public abstract class FileAdapter {
     protected final String DEFAULT_DATETIME_FORMAT = "MM/dd/yyyy";
+
     protected String formatString(String s) {
         return s.replace(",", "\\,").replace("\"", "\\\"");
     }
@@ -15,4 +16,7 @@ public abstract class AbstractAdapter {
     public String getPostfix() {
         return "";
     }
+
+    public abstract String getDefaultExtension();
+    public abstract String getDescription();
 }

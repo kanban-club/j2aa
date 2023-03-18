@@ -1,8 +1,7 @@
 package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.j2aa.j2aaconverter.adapters.AbstractAdapter;
-import club.kanban.j2aa.j2aaconverter.adapters.CsvAdapter;
-import club.kanban.j2aa.j2aaconverter.adapters.JsonAdapter;
+import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapter;
+import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jirarestclient.Board;
 import club.kanban.j2aa.jirarestclient.BoardConfig;
 import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
@@ -106,11 +105,7 @@ public class J2aaConverter {
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
 
-            AbstractAdapter adapter;
-            if (FilenameUtils.getExtension(outputFile.getName()).equalsIgnoreCase("json"))
-                adapter = new JsonAdapter();
-            else
-                adapter = new CsvAdapter();
+            FileAdapter adapter = FileAdapterFactory.getAdapter(FilenameUtils.getExtension(outputFile.getName()));
 
             writer.write(adapter.getPrefix());
             for (int i = 0; i < exportableIssues.size(); i++) {

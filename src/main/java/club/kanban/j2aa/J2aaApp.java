@@ -4,6 +4,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
+import club.kanban.j2aa.j2aaconverter.fileadapters.FileFormat;
 import club.kanban.j2aa.jirarestclient.Board;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
@@ -188,13 +189,22 @@ public class J2aaApp extends JFrame {
         selectOutputFileButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Выберите расположение и имя файла");
-            chooser.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
+
+            for (FileFormat format : FileFormat.values()) {
+                var filter = new FileNameExtensionFilter(
+                        format.getAdapter().getDescription(),
+                        format.getAdapter().getDefaultExtension());
+                chooser.addChoosableFileFilter(filter);
+                if (format == FileFormat.CSV)
+                    chooser.setFileFilter(filter);
+            }
+
             chooser.setSelectedFile(new File(fOutputFileName.getText()));
             chooser.setCurrentDirectory(new File(fOutputFileName.getText()).getAbsoluteFile().getParentFile());
             if (chooser.showSaveDialog(getAppFrame()) == APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
-                if (FilenameUtils.getExtension(file.getName()).equals(""))
-                    file = new File(file.getAbsoluteFile() + ".csv");
+                if (FilenameUtils.getExtension(file.getName()).isBlank())
+                    file = new File(file.getAbsoluteFile() + FileFormat.CSV.getAdapter().getDefaultExtension());
                 fOutputFileName.setText(file.getAbsolutePath());
                 getData(this);
             }

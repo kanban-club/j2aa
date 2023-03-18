@@ -1,4 +1,4 @@
-package club.kanban.j2aa.j2aaconverter.adapters;
+package club.kanban.j2aa.j2aaconverter.fileadapters;
 
 import club.kanban.j2aa.j2aaconverter.ExportableIssue;
 import club.kanban.j2aa.jirarestclient.BoardColumn;
@@ -13,7 +13,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class JsonAdapter extends AbstractAdapter {
+public class CsvAdapter extends FileAdapter {
+
+    @Override
+    public String getDefaultExtension() {
+        return "csv";
+    }
+
+    @Override
+    public String getDescription() {
+        return "CSV файлы";
+    }
+
+    protected CsvAdapter() {
+    }
 
     @Override
     public String getHeaders(ExportableIssue expIssue) {
@@ -24,18 +37,18 @@ public class JsonAdapter extends AbstractAdapter {
         for (BoardColumn boardColumn : expIssue.getConverter().getBoardConfig().getBoardColumns())
             headers.add(boardColumn.getName());
         headers.addAll(expIssue.getAttributes().keySet());
-        return "[" + headers.stream()
-                .map(s -> "\"" + formatString(s) + "\"")
-                .collect(Collectors.joining(","))
-                + "]";
+        return headers.stream()
+                .map(this::formatString)
+                .collect(Collectors.joining(","));
     }
+
 
     @Override
     public String getValues(ExportableIssue expIssue) {
         List<String> values = new ArrayList<>(3
                 + expIssue.getConverter().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
-        values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), expIssue.getName()));
+        values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), formatString(expIssue.getName())));
 
         DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
 
@@ -57,19 +70,6 @@ public class JsonAdapter extends AbstractAdapter {
             }
         });
 
-        return "\n,[" + values.stream()
-                .map(s -> "\"" + formatString(s) + "\"")
-                .collect(Collectors.joining(","))
-                + "]";
-    }
-
-    @Override
-    public String getPrefix() {
-        return "[";
-    }
-
-    @Override
-    public String getPostfix() {
-        return "]";
+        return "\n" + String.join(",", values);
     }
 }
