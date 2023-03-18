@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class CsvAdapter extends FileAdapter {
+public class CsvAdapter implements FileAdapter {
     protected CsvAdapter() {
     }
 
@@ -27,19 +27,18 @@ public class CsvAdapter extends FileAdapter {
             headers.add(boardColumn.getName());
         headers.addAll(expIssue.getAttributes().keySet());
         return headers.stream()
-                .map(this::formatString)
+                .map(Utils::escapeString)
                 .collect(Collectors.joining(","));
     }
-
 
     @Override
     public String getValues(ExportableIssue expIssue) {
         List<String> values = new ArrayList<>(3
                 + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
-        values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), formatString(expIssue.getName())));
+        values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), Utils.escapeString(expIssue.getName())));
 
-        DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
+        DateFormat df = new SimpleDateFormat(Utils.DEFAULT_DATETIME_FORMAT);
 
         for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns()) {
             Date date = expIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
@@ -48,10 +47,10 @@ public class CsvAdapter extends FileAdapter {
 
         expIssue.getAttributes().forEach((k, v) -> {
             if (v instanceof String) {
-                values.add(formatString((String) v));
+                values.add(Utils.escapeString((String) v));
             } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
                 values.add("[" + ((List<?>) v).stream()
-                        .map(o -> this.formatString(o.toString()))
+                        .map(o -> Utils.escapeString(o.toString()))
                         .collect(Collectors.joining("|"))
                         + "]");
             } else {

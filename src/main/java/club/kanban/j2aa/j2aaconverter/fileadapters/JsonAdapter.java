@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class JsonAdapter extends FileAdapter {
+public class JsonAdapter implements FileAdapter {
 
     @Override
     public String getHeaders(ExportableIssue expIssue) {
@@ -25,7 +25,7 @@ public class JsonAdapter extends FileAdapter {
             headers.add(boardColumn.getName());
         headers.addAll(expIssue.getAttributes().keySet());
         return "[" + headers.stream()
-                .map(s -> "\"" + formatString(s) + "\"")
+                .map(s -> "\"" + Utils.escapeString(s) + "\"")
                 .collect(Collectors.joining(","))
                 + "]";
     }
@@ -40,7 +40,7 @@ public class JsonAdapter extends FileAdapter {
                 + expIssue.getAttributes().size());
         values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), expIssue.getName()));
 
-        DateFormat df = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT);
+        DateFormat df = new SimpleDateFormat(Utils.DEFAULT_DATETIME_FORMAT);
 
         for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns()) {
             Date date = expIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
@@ -49,10 +49,10 @@ public class JsonAdapter extends FileAdapter {
 
         expIssue.getAttributes().forEach((k, v) -> {
             if (v instanceof String) {
-                values.add(formatString((String) v));
+                values.add(Utils.escapeString((String) v));
             } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
                 values.add("[" + ((List<?>) v).stream()
-                        .map(o -> this.formatString(o.toString()))
+                        .map(o -> Utils.escapeString(o.toString()))
                         .collect(Collectors.joining("|"))
                         + "]");
             } else {
@@ -61,7 +61,7 @@ public class JsonAdapter extends FileAdapter {
         });
 
         return "\n,[" + values.stream()
-                .map(s -> "\"" + formatString(s) + "\"")
+                .map(s -> "\"" + Utils.escapeString(s) + "\"")
                 .collect(Collectors.joining(","))
                 + "]";
     }
