@@ -1,7 +1,6 @@
 package club.kanban.j2aa.jirarestclient;
 
 import lombok.Getter;
-import net.rcarz.jiraclient.Field;
 import net.sf.json.JSONObject;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +27,7 @@ public class ChangeLogItem {
     }
 
     public static ChangeLogItem get(JSONObject history, JSONObject historyItem, long flags) {
-        Date date = Field.getDate(history.get("created"));
+        Date date = Field.getDateTime(history.get("created"));
         Long from = (flags & SKIP_FROM) != 0 ? null : historyItem.getLong("from");
         String fromString = (flags & SKIP_FROM_STRING) != 0 ? null : historyItem.getString("fromString");
         Long to = (flags & SKIP_TO) != 0 ? null : historyItem.getLong("to");

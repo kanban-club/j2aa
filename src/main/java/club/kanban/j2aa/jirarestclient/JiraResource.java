@@ -108,7 +108,13 @@ public class JiraResource {
         List<T> results = new ArrayList<>();
 
         for (Object v : (JSONArray) jo.get(listName)) {
-            T item = getResource(type, (JSON) v, restClient);
+            T item;
+            if (v  instanceof JSON) {
+                item = getResource(type, (JSON) v, restClient);
+            } else {
+                item = (T) v;
+            }
+
             if (item != null) {
                 results.add(item);
             }
