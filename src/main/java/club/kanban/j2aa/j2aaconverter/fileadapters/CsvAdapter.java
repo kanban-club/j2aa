@@ -18,6 +18,16 @@ public class CsvAdapter implements FileAdapter {
     }
 
     @Override
+    public String getDefaultExtension() {
+        return "csv";
+    }
+
+    @Override
+    public String getDescription() {
+        return "CSV files";
+    }
+
+    @Override
     public String getHeaders(ExportableIssue expIssue) {
         List<String> headers = new ArrayList<>(3
                 + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()

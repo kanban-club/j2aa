@@ -14,6 +14,15 @@ import java.util.stream.Collectors;
 
 @Repository
 public class JsonAdapter implements FileAdapter {
+    @Override
+    public String getDefaultExtension() {
+        return "json";
+    }
+
+    @Override
+    public String getDescription() {
+        return "JSON files";
+    }
 
     @Override
     public String getHeaders(ExportableIssue expIssue) {

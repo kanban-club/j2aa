@@ -1,14 +1,11 @@
 package club.kanban.j2aa.jirarestclient;
 
 import lombok.Getter;
-import net.rcarz.jiraclient.Field;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -49,37 +46,11 @@ public class Issue extends JiraResource {
     /**
      * Creates a new Agile Issue resource.
      *
-     * @param restclient REST client instance
+     * @param restClient REST client instance
      * @param json       JSON payload
      */
-    public Issue(RestClient restclient, JSONObject json) throws JiraException {
-        super(restclient, json);
-    }
-
-    /**
-     * Возвращает из заданного JSON массива список элементов заданного типа
-     * @param type тип элемента, который ожидается в массиве. Возможные значения либо String, либо JiraResource
-     * @param jsonArray JSON массив
-     * @return список элементов заданного типа, извлеченных из JSON массива
-     * @throws JiraException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     */
-    public <T> List<T> getObjectFromArray(Class<T> type, JSONArray jsonArray) throws JiraException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        List<T> objects = new ArrayList<>(jsonArray.size());
-        for (Object object : jsonArray) {
-            if (object instanceof String)
-                objects.add((T) object);
-            else if (object instanceof JSONObject) {
-                Constructor<T> constructor = type.getDeclaredConstructor(RestClient.class, JSONObject.class);
-                T jiraResource = constructor.newInstance(getRestClient(), object);
-                objects.add(jiraResource);
-            } else
-                throw new JiraException("Неизвестный тип параметра в JSONObject");
-        }
-        return objects;
+    public Issue(RestClient restClient, JSONObject json) throws JiraException {
+        super(restClient, json);
     }
 
     @Override
@@ -101,49 +72,38 @@ public class Issue extends JiraResource {
                             summary = Field.getString(jsonFields.get(jsonKey));
                             break;
                         case "created":
-                            created = getDateTime(jsonFields.get(jsonKey));
+                            created = Field.getDateTime(jsonFields.get(jsonKey));
                             break;
                         case "priority":
-                            priority = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            priority = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "status":
-                            status = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            status = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "project":
-                            project = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            project = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "issuetype":
-                            issueType = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            issueType = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "assignee":
-                            assignee = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            assignee = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "reporter":
-                            reporter = new JiraResource(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            reporter = getResource(JiraResource.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "epic":
-                            epic = new Issue(getRestClient(), jsonFields.getJSONObject(jsonKey));
+//                            epic = new Issue(getRestClient(), jsonFields.getJSONObject(jsonKey));
+                            epic = getResource(Issue.class, jsonFields.getJSONObject(jsonKey), getRestClient());
                             break;
                         case "labels":
-                            labels = getObjectFromArray(String.class, (JSONArray) jsonFields.get(jsonKey));
-//                            labels = new ArrayList<>(((JSONArray) jsonFields.get(jsonKey)).size());
-//                            for (Object label : (JSONArray) jsonFields.get(jsonKey)) {
-//                                labels.add((String) label);
-//                            } // TODO Убрать закомментированный код
+                            labels = getResourceArray(String.class, jsonFields, getRestClient(), jsonKey);
                             break;
                         case "components":
-                            components = getObjectFromArray(JiraResource.class, (JSONArray) jsonFields.get(jsonKey));
-//                            Object objArray = jsonFields.get(jsonKey);
-//                            if (((JSONArray) objArray).size() > 0) {
-//                                components = new ArrayList<>(((JSONArray) objArray).size());
-//                                for (int i = 0; i < ((JSONArray) objArray).size(); i++) {
-//                                    JiraResource component = new JiraResource(getRestClient(), ((JSONArray) objArray).getJSONObject(i));
-//                                    components.add(component);
-//                                }
-//                            } // TODO Убрать закомментированный код
+                            components = getResourceArray(JiraResource.class, jsonFields, getRestClient(), jsonKey);
                             break;
                         case "fixVersions":
-                            fixVersions = getObjectFromArray(JiraResource.class, (JSONArray) jsonFields.get(jsonKey));
+                            fixVersions = getResourceArray(JiraResource.class, jsonFields, getRestClient(), jsonKey);
                             break;
                     }
                 } catch (Exception ignored) {

@@ -44,7 +44,7 @@ public class ExportableIssue {
         exportableIssue.name = "";
         exportableIssue.link = "";
         try {
-            URL restApiUrl = new URL(issue.getSelfURL());
+            URL restApiUrl = new URL(issue.getSelf());
             exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
                     + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
         } catch (MalformedURLException ignored) {

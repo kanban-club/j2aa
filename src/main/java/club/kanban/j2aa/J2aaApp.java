@@ -4,7 +4,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
-import club.kanban.j2aa.j2aaconverter.fileadapters.FileFormat;
+import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jirarestclient.Board;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
@@ -194,21 +194,21 @@ public class J2aaApp extends JFrame {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Выберите расположение и имя файла");
 
-            for (FileFormat format : FileFormat.values()) {
-                var filter = new FileNameExtensionFilter(
-                        format.getDescription(),
-                        format.getDefaultExtension());
+            var faf = context.getBean(FileAdapterFactory.class);
+            faf.getFormats().forEach((ext, desc) -> {
+                var filter = new FileNameExtensionFilter(desc, ext);
                 chooser.addChoosableFileFilter(filter);
-                if (format == FileFormat.CSV)
+                if (ext.equalsIgnoreCase("csv"))
                     chooser.setFileFilter(filter);
-            }
+
+            });
 
             chooser.setSelectedFile(new File(fOutputFileName.getText()));
             chooser.setCurrentDirectory(new File(fOutputFileName.getText()).getAbsoluteFile().getParentFile());
             if (chooser.showSaveDialog(getAppFrame()) == APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
                 if (FilenameUtils.getExtension(file.getName()).isBlank())
-                    file = new File(file.getAbsoluteFile() + FileFormat.CSV.getDefaultExtension());
+                    file = new File(file.getAbsoluteFile() + faf.getDefaultAdapter().getDefaultExtension());
                 fOutputFileName.setText(file.getAbsolutePath());
                 getData(this);
             }
@@ -250,6 +250,10 @@ public class J2aaApp extends JFrame {
                 .headless(false)
                 .run(args);
         J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
+
+//        List adapters = ctx.getBean(FileAdapterFactory.class).getAdapters();
+//        new FileAdapterFactory().getAdapter("null");
+
         j2aaApp.init();
     }
 
