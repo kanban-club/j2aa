@@ -1,11 +1,9 @@
 package club.kanban.j2aa;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jirarestclient.Board;
+import club.kanban.j2aa.jirarestclient.uilogger.UILogInterface;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
@@ -19,13 +17,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 
+import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -47,11 +43,10 @@ import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
 
 @SpringBootApplication
-public class J2aaApp extends JFrame {
+public class J2aaApp extends JFrame implements UILogInterface {
     private static final Logger logger = LoggerFactory.getLogger(J2aaApp.class);
     public static final String VERSION_KEY = "version";
     public static final String CONFIG_FILE_NAME = ".j2aa";
-    public static final String ARG_PROFILE = "profile";
 
     public static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     public static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
@@ -105,9 +100,6 @@ public class J2aaApp extends JFrame {
 
     @Value("${converter.use-max-column:false}")
     private boolean useMaxColumn;
-
-    @Autowired
-    private ApplicationContext context;
 
     private JPanel rootPanel;
     private JTextField fBoardURL;
@@ -174,6 +166,7 @@ public class J2aaApp extends JFrame {
                 }
             }
         });
+
         loadSettingsButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setFileFilter(new FileNameExtensionFilter("Connection profiles (.xml)", "xml"));
@@ -190,17 +183,17 @@ public class J2aaApp extends JFrame {
                 }
             }
         });
+
         selectOutputFileButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Выберите расположение и имя файла");
 
-            var faf = context.getBean(FileAdapterFactory.class);
+            FileAdapterFactory faf = J2aaConfig.getContext().getBean(FileAdapterFactory.class);
             faf.getFormats().forEach((ext, desc) -> {
                 var filter = new FileNameExtensionFilter(desc, ext);
                 chooser.addChoosableFileFilter(filter);
                 if (ext.equalsIgnoreCase("csv"))
                     chooser.setFileFilter(filter);
-
             });
 
             chooser.setSelectedFile(new File(fOutputFileName.getText()));
@@ -246,49 +239,13 @@ public class J2aaApp extends JFrame {
             }
         }
 
-        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(J2aaConfiguration.class)
-                .headless(false)
-                .run(args);
-        J2aaApp j2aaApp = ctx.getBean(J2aaApp.class);
-
-//        List adapters = ctx.getBean(FileAdapterFactory.class).getAdapters();
-//        new FileAdapterFactory().getAdapter("null");
-
-        j2aaApp.init();
+        new SpringApplicationBuilder(J2aaConfig.class).headless(false).run(args);
     }
 
-    /**
-     * Инициализация приложения:
-     * 1. Загружаем профили подключения из командной строки
-     * 2. Настраиваем данные для отображения
-     * 3. Делаем приложение видимым
-     */
-    public void init() {
-        // Инициализация UI логгера
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        for (ch.qos.logback.classic.Logger logger : loggerContext.getLoggerList()) {
-            for (Iterator<Appender<ILoggingEvent>> index = logger.iteratorForAppenders(); index.hasNext(); ) {
-                Appender<ILoggingEvent> appender = index.next();
-                if (appender instanceof UILogger)
-                    ((UILogger) appender).setJ2aaApp(this);
-            }
-        }
-
-        // Чтение файла с профилем если указан параметр --profile
-        String profileName = context.getEnvironment().getProperty(ARG_PROFILE);
-
-        if (profileName != null) {
-            File file = new File(profileName);
-            try {
-                readConnProfile(file);
-            } catch (IOException e) {
-                logger.error("Не удается прочитать конфигурационный файл '{}'", file.getAbsoluteFile());
-                System.exit(-1);
-            }
-        } else {
-            setData(this);
-            this.setAppTitle();
-        }
+    @PostConstruct
+    private void init() {
+        setData(this);
+        setAppTitle();
         getAppFrame().setVisible(true);
     }
 
@@ -307,7 +264,7 @@ public class J2aaApp extends JFrame {
      * @throws IOException                      в случае если файл не найден
      * @throws InvalidPropertiesFormatException если файл имеет неверный формат
      */
-    private void readConnProfile(File file) throws IOException, InvalidPropertiesFormatException {
+    protected void readConnProfile(File file) throws IOException, InvalidPropertiesFormatException {
         Properties p = new Properties();
         FileInputStream fis = new FileInputStream(file.getAbsoluteFile());
 

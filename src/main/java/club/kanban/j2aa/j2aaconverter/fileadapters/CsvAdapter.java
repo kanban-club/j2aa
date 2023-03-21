@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @Repository
 public class CsvAdapter implements FileAdapter {
-    protected CsvAdapter() {
+    private CsvAdapter() {
     }
 
     @Override

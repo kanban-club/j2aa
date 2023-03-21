@@ -1,6 +1,6 @@
 package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.j2aa.J2aaConfiguration;
+import club.kanban.j2aa.J2aaConfig;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapter;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jirarestclient.Board;
@@ -12,10 +12,6 @@ import net.rcarz.jiraclient.JiraException;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -108,18 +104,18 @@ public class J2aaConverter {
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
 
-            var context = new AnnotationConfigApplicationContext(J2aaConfiguration.class);
-            FileAdapter adapter = context.getBean(FileAdapterFactory.class).getAdapter(FilenameUtils.getExtension(outputFile.getName()));
-            writer.write(adapter.getPrefix());
+            var context = J2aaConfig.getContext();
+            FileAdapter fileAdapter = context.getBean(FileAdapterFactory.class).getAdapter(FilenameUtils.getExtension(outputFile.getName()));
+            writer.write(fileAdapter.getPrefix());
             for (int i = 0; i < exportableIssues.size(); i++) {
                 ExportableIssue exportableIssue = exportableIssues.get(i);
 
                 if (i == 0)
-                    writer.write(adapter.getHeaders(exportableIssue));
+                    writer.write(fileAdapter.getHeaders(exportableIssue));
 
-                writer.write(adapter.getValues(exportableIssue));
+                writer.write(fileAdapter.getValues(exportableIssue));
             }
-            writer.write(adapter.getPostfix());
+            writer.write(fileAdapter.getPostfix());
             writer.flush();
         }
     }
@@ -160,7 +156,6 @@ public class J2aaConverter {
         public Builder setBoard(Board board) {this.board = board; return this;}
         public Builder setJqlSubFilter(String jqlSubFilter) {this.jqlSubFilter = jqlSubFilter; return this;}
         public Builder setOutputFile(File outputFile) {this.outputFile = outputFile; return this;}
-
     }
     private J2aaConverter(Builder builder) {
         useMaxColumn = builder.useMaxColumn;

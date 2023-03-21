@@ -39,8 +39,7 @@ public class JsonAdapter implements FileAdapter {
                 + "]";
     }
 
-    protected JsonAdapter() {
-    }
+    private JsonAdapter() {}
 
     @Override
     public String getValues(ExportableIssue expIssue) {

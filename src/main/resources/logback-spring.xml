@@ -5,7 +5,7 @@
         </encoder>
     </appender>
 
-    <appender name="UI" class="club.kanban.j2aa.UILogger"/>
+    <appender name="UI" class="club.kanban.j2aa.jirarestclient.uilogger.UILogger"/>
 
     <logger name="jdbc" level="OFF" />
 
