@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JiraResource {
-    public static final String RESOURCE_URI = "/rest/agile/latest/";
+    public static final String RESOURCE_URI = "rest/agile/latest/";
     @Getter
     private final RestClient restClient;
     @Getter
