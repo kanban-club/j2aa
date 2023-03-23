@@ -12,7 +12,6 @@ import org.springframework.context.annotation.*;
 })
 
 @PropertySources({
-        @PropertySource("classpath:default-profile.xml"),
         @PropertySource(value = "file:${user.home}/" + J2aaApp.CONFIG_FILE_NAME, ignoreResourceNotFound = true)
 })
 @Configuration
