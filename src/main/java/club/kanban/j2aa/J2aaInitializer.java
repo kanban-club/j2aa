@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.Iterator;
 
 @Component
-public class J2aaAppInitializer implements ApplicationRunner {
+public class J2aaInitializer implements ApplicationRunner {
     @Autowired
     ApplicationContext context;
 
