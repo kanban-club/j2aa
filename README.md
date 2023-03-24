@@ -7,7 +7,7 @@ java -jar j2aa.jar [options]
 
 где [options]:
 
---profile=<your-default-profile-file.xml> -загружать заданный профиль подключения
+--profile=<your-default-profile-file.xml> - загружать заданный профиль подключения
 
 ## Файл конфигурации
 Расположение -домашняя директория пользователя,
@@ -22,7 +22,7 @@ ${user.home}/.j2aa
 
 **password** = пароль пользователя
 
-**jira-fields** = список полей по-умолчанию через запятую для выгрузки. 
+**jira-fields** = список полей через запятую для выгрузки. 
 Допустимые значения: issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary
 
 **board-url** = адрес доски
