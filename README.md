@@ -16,13 +16,21 @@ java -jar j2aa.jar [options]
 ${user.home}/.j2aa
 
 
-### Переменные файла конфигурации (ключ=значение)
-**default.username** - имя пользователя jira по-умолчанию
+## Переменные файла конфигурации (ключ=значение)
+### Переменные по-умолчанию
+**username** = имя пользователя
 
-**default.password** - пароль пользователя jira по-умолчанию
+**password** = пароль пользователя
 
-**converter.use-max-column**=false/true - метод расчета lead time в случае "обратных" движений по доске (по-умолчанию false)
-
-**converter.jira-fields** - список полей для выгрузки. 
+**jira-fields** = список полей по-умолчанию через запятую для выгрузки. 
 Допустимые значения: issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary
-Значения по-умолчанию: issuetype, labels, epic
+
+**board-url** = адрес доски
+
+**sub-filter** = дополнительный jql фильтр
+
+**output-file** = файл для экспорта
+
+### Глобальные переменные
+
+**use-max-column** = метод расчета lead time в случае "обратных" движений по доске. Допустимые значения false (по-умолчанию) или true
