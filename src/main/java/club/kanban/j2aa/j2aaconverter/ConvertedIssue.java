@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
  * а также полей которые нужно запросить в jira
  */
 
-public class ExportableIssue {
-    private static final Logger logger = LoggerFactory.getLogger(ExportableIssue.class);
+public class ConvertedIssue {
+    private static final Logger logger = LoggerFactory.getLogger(ConvertedIssue.class);
     @Getter
     private String key;
     @Getter
@@ -36,63 +36,63 @@ public class ExportableIssue {
     @Getter
     private J2aaConverter converter;
 
-    public static ExportableIssue newInstance(J2aaConverter converter, Issue issue) throws JiraException {
-        ExportableIssue exportableIssue = new ExportableIssue();
-        exportableIssue.converter = converter;
+    public static ConvertedIssue newInstance(J2aaConverter converter, Issue issue) throws JiraException {
+        ConvertedIssue convertedIssue = new ConvertedIssue();
+        convertedIssue.converter = converter;
 
-        exportableIssue.key = issue.getKey();
-        exportableIssue.name = "";
-        exportableIssue.link = "";
+        convertedIssue.key = issue.getKey();
+        convertedIssue.name = "";
+        convertedIssue.link = "";
         try {
             URL restApiUrl = new URL(issue.getSelf());
-            exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+            convertedIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
         } catch (MalformedURLException ignored) {
         }
 
         //Считываем запрашиваемые поля для Issue
-        exportableIssue.attributes = new LinkedHashMap<>();
+        convertedIssue.attributes = new LinkedHashMap<>();
         for (String field : converter.getProfile().getJiraFields()) {
             switch (field) {
                 case "projectkey":
-                    exportableIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
+                    convertedIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
                     break;
                 case "summary":
-                    exportableIssue.name = (issue.getSummary() != null) ? issue.getSummary() : "";
+                    convertedIssue.name = (issue.getSummary() != null) ? issue.getSummary() : "";
                     break;
                 case "project":
-                    exportableIssue.attributes.put("Project", issue.getProject() != null ? issue.getProject().getName() : "");
+                    convertedIssue.attributes.put("Project", issue.getProject() != null ? issue.getProject().getName() : "");
                     break;
                 case "issuetype":
-                    exportableIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
+                    convertedIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
                     break;
                 case "assignee":
-                    exportableIssue.attributes.put("Assignee", issue.getAssignee() != null ? issue.getAssignee().getAttribute("displayName") : "");
+                    convertedIssue.attributes.put("Assignee", issue.getAssignee() != null ? issue.getAssignee().getAttribute("displayName") : "");
                     break;
                 case "reporter":
-                    exportableIssue.attributes.put("Reporter", issue.getReporter() != null ? issue.getReporter().getAttribute("displayName") : "");
+                    convertedIssue.attributes.put("Reporter", issue.getReporter() != null ? issue.getReporter().getAttribute("displayName") : "");
                     break;
                 case "priority":
-                    exportableIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
+                    convertedIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
                     break;
                 case "labels":
-                    exportableIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
                     break;
                 case "components":
-                    exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "fixVersions":
-                    exportableIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "epic":
-                    exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
-                    exportableIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
+                    convertedIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
+                    convertedIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
                     break;
             }
         }
 
-        exportableIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getProfile().isUseMaxColumn());
-        exportableIssue.initBlockedDays(issue);
-        return exportableIssue;
+        convertedIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getProfile().isUseMaxColumn());
+        convertedIssue.initBlockedDays(issue);
+        return convertedIssue;
     }
 
     private static long getDaysBetween(Date start, Date end) {

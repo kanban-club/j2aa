@@ -10,19 +10,19 @@ import java.util.Map;
 
 @Component
 public class FileAdapterFactory {
-    private final List<FileAdapter> adapters;
+    private final List<Exportable> adapters;
     @Getter private final CsvAdapter defaultAdapter;
 
     @Autowired
-    private FileAdapterFactory(List<FileAdapter> adapters, CsvAdapter defaultAdapter) {
+    private FileAdapterFactory(List<Exportable> adapters, CsvAdapter defaultAdapter) {
         this.adapters = adapters;
         this.defaultAdapter = defaultAdapter;
     }
 
-    public FileAdapter getAdapter(String fileExtension) {
-        for (FileAdapter fileAdapter : adapters) {
-            if (fileAdapter.getDefaultExtension().equalsIgnoreCase(fileExtension)) {
-                return fileAdapter;
+    public Exportable getAdapter(String fileExtension) {
+        for (Exportable exportable : adapters) {
+            if (exportable.getDefaultExtension().equalsIgnoreCase(fileExtension)) {
+                return exportable;
             }
         }
         return defaultAdapter;
@@ -30,7 +30,7 @@ public class FileAdapterFactory {
 
     public Map<String, String> getFormats() {
         var formats = new HashMap<String, String>(adapters.size());
-        for (FileAdapter adapter : adapters) {
+        for (Exportable adapter : adapters) {
             formats.put(adapter.getDefaultExtension(), adapter.getDescription());
         }
         return formats;

@@ -1,6 +1,5 @@
 package club.kanban.jirarestclient;
 
-import club.kanban.j2aa.j2aaconverter.ExportableIssue;
 import club.kanban.j2aa.jirarestclient.Board;
 import club.kanban.j2aa.jirarestclient.BoardConfig;
 import club.kanban.j2aa.jirarestclient.BoardIssuesSet;

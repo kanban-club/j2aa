@@ -81,6 +81,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private JPasswordField fPassword;
     private JLabel labelBoardUrl;
     private JTextField fJiraFields;
+    private JLabel labelsJiraFields;
 
     private Thread conversionThread;
 
@@ -165,8 +166,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
             faf.getFormats().forEach((ext, desc) -> {
                 var filter = new FileNameExtensionFilter(desc, ext);
                 chooser.addChoosableFileFilter(filter);
-                if (ext.equalsIgnoreCase("csv"))
-                    chooser.setFileFilter(filter);
+                if (ext.equalsIgnoreCase("csv")) chooser.setFileFilter(filter);
             });
 
             chooser.setSelectedFile(new File(fOutputFileName.getText()));
@@ -188,14 +188,26 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
                         try {
                             String url = fBoardURL.getText();
-                            if (showConfirmDialog(getAppFrame(),
-                                    String.format("Перейти на доску '%s'?", url),
-                                    "Открытие страницы", YES_NO_OPTION, INFORMATION_MESSAGE) == YES_OPTION) {
+                            if (showConfirmDialog(getAppFrame(), String.format("Перейти на доску '%s'?", url), "Открытие страницы", YES_NO_OPTION, INFORMATION_MESSAGE) == YES_OPTION) {
                                 desktop.browse(URI.create(fBoardURL.getText()));
                             }
                         } catch (IOException ignored) {
                         }
                     }
+                }
+            }
+        });
+        labelsJiraFields.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                if (e.getClickCount() == 2) {
+                    if (!labelsJiraFields.getText().isEmpty()) {
+                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?", "Подтверждение", YES_NO_OPTION) != YES_NO_OPTION) {
+                            return;
+                        }
+                    }
+                    fJiraFields.setText("issuetype, labels");
                 }
             }
         });
@@ -205,15 +217,14 @@ public class J2aaApp extends JFrame implements UILogInterface {
         File configFile = new File(System.getProperty("user.home") + "/" + CONFIG_FILE_NAME);
         if (!configFile.exists()) {
             try {
-                IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader()
-                        .getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
+                IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
             } catch (IOException e) {
                 logger.error("Ошибка создания конфигурационного файла '{}'", configFile.getAbsoluteFile());
             }
         }
 
 //        SpringApplication.run(J2aaApp.class);
-            new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
+        new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
     }
 
     @PostConstruct
@@ -264,10 +275,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
         getData(this);
 
         List<String> missedParams = new ArrayList<>(10);
-        if (getUserName() == null || getUserName().trim().isEmpty())
-            missedParams.add("Пользователь");
-        if (getPassword() == null || getPassword().trim().isEmpty())
-            missedParams.add("Пароль");
+        if (getUserName() == null || getUserName().trim().isEmpty()) missedParams.add("Пользователь");
+        if (getPassword() == null || getPassword().trim().isEmpty()) missedParams.add("Пароль");
         if (connectionProfile.getBoardAddress() == null || connectionProfile.getBoardAddress().trim().isEmpty())
             missedParams.add("Ссылка на доску");
         if (connectionProfile.getOutputFileName() == null || connectionProfile.getOutputFileName().trim().isEmpty())
@@ -305,8 +314,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 } else {
                     logger.info(ex.getMessage());
                 }
-            } else
-                logger.info(e.getMessage());
+            } else logger.info(e.getMessage());
         } catch (IOException e) {
             logger.info(e.getMessage());
         } catch (InterruptedException e) {
@@ -318,10 +326,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
     }
 
     private void enableControls(boolean state) {
-        if (state)
-            startButton.setText("Конвертировать");
-        else
-            startButton.setText("Остановить");
+        if (state) startButton.setText("Конвертировать");
+        else startButton.setText("Остановить");
         loadSettingsButton.setEnabled(state);
         saveSettingsButton.setEnabled(state);
         selectOutputFileButton.setEnabled(state);
@@ -333,9 +339,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     }
 
     public void setAppTitle() {
-        String newTitle = DEFAULT_APP_TITLE
-                + ((!version.isEmpty()) ? " v" + version : "")
-                + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
+        String newTitle = DEFAULT_APP_TITLE + ((!version.isEmpty()) ? " v" + version : "") + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
         getAppFrame().setTitle(newTitle);
     }
 
@@ -407,9 +411,9 @@ public class J2aaApp extends JFrame implements UILogInterface {
         fJiraFields = new JTextField();
         fJiraFields.setToolTipText("issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary");
         rootPanel.add(fJiraFields, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
-        final JLabel label5 = new JLabel();
-        label5.setText("Поля jira");
-        rootPanel.add(label5, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        labelsJiraFields = new JLabel();
+        labelsJiraFields.setText("Поля jira");
+        rootPanel.add(labelsJiraFields, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
     }
 
     /**

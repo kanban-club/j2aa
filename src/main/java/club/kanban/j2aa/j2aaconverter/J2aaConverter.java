@@ -2,7 +2,7 @@ package club.kanban.j2aa.j2aaconverter;
 
 import club.kanban.j2aa.ConnectionProfile;
 import club.kanban.j2aa.J2aaConfig;
-import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapter;
+import club.kanban.j2aa.j2aaconverter.fileadapters.Exportable;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jirarestclient.Board;
 import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
@@ -42,10 +42,10 @@ public class J2aaConverter {
 
     @Getter
     @Setter
-    private List<ExportableIssue> exportableIssues;
+    private List<ConvertedIssue> convertedIssues;
 
     public void importFromJira() throws JiraException, InterruptedException, MalformedURLException {
-        exportableIssues = null;
+        convertedIssues = null;
 
         URL boardUrl = new URL(profile.getBoardAddress());
 
@@ -69,23 +69,23 @@ public class J2aaConverter {
             boardIssuesSet = board.getBoardIssuesSet(profile.getJqlSubFilter(), startAt, 0, actualHttpFields);
 
 //            if (boardIssuesSet.getIssues().size() > 0) { // TODO удалить закомментиованный код
-            if (exportableIssues == null)
-                exportableIssues = new ArrayList<>(boardIssuesSet.getTotal());
+            if (convertedIssues == null)
+                convertedIssues = new ArrayList<>(boardIssuesSet.getTotal());
 
             // Map issue's changelog to board columns
-            List<ExportableIssue> exportableIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
+            List<ConvertedIssue> convertedIssuesSet = new ArrayList<>(boardIssuesSet.getIssues().size());
             for (Issue issue : boardIssuesSet.getIssues()) {
                 try {
-                    ExportableIssue exportableIssue = ExportableIssue.newInstance(this, issue);
-                    exportableIssuesSet.add(exportableIssue);
+                    ConvertedIssue convertedIssue = ConvertedIssue.newInstance(this, issue);
+                    convertedIssuesSet.add(convertedIssue);
                 } catch (Exception e) {
                     logger.info(String.format("Не удается конвертировать %s: %s", issue.getKey(), e.getMessage()));
                 }
             }
 
-            exportableIssues.addAll(exportableIssuesSet);
+            convertedIssues.addAll(convertedIssuesSet);
             startAt += boardIssuesSet.getMaxResults();
-            logger.info(String.format("%d из %d issues получено", exportableIssues.size(), boardIssuesSet.getTotal()));
+            logger.info(String.format("%d из %d issues получено", convertedIssues.size(), boardIssuesSet.getTotal()));
 //            }
         } while (startAt < boardIssuesSet.getTotal()); // alternative (boardIssuesSet.getBoardIssues().size() > 0)
     }
@@ -101,17 +101,17 @@ public class J2aaConverter {
         {
 
             var context = J2aaConfig.getContext();
-            FileAdapter fileAdapter = context.getBean(FileAdapterFactory.class).getAdapter(FilenameUtils.getExtension(outputFile.getName()));
-            writer.write(fileAdapter.getPrefix());
-            for (int i = 0; i < exportableIssues.size(); i++) {
-                ExportableIssue exportableIssue = exportableIssues.get(i);
+            Exportable exportable = context.getBean(FileAdapterFactory.class).getAdapter(FilenameUtils.getExtension(outputFile.getName()));
+            writer.write(exportable.getPrefix());
+            for (int i = 0; i < convertedIssues.size(); i++) {
+                ConvertedIssue convertedIssue = convertedIssues.get(i);
 
                 if (i == 0)
-                    writer.write(fileAdapter.getHeaders(exportableIssue));
+                    writer.write(exportable.getHeaders(convertedIssue));
 
-                writer.write(fileAdapter.getValues(exportableIssue));
+                writer.write(exportable.getValues(convertedIssue));
             }
-            writer.write(fileAdapter.getPostfix());
+            writer.write(exportable.getPostfix());
             writer.flush();
             logger.info(String.format("Данные выгружены в файл:\n%s", outputFile.getAbsoluteFile()));
         }
@@ -124,10 +124,10 @@ public class J2aaConverter {
 
         importFromJira();
 
-        if (getExportableIssues().size() > 0) {
+        if (getConvertedIssues().size() > 0) {
             Date endDate = new Date();
             long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
-            logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек", getExportableIssues().size(), timeInSec, (1.0 * getExportableIssues().size()) / timeInSec));
+            logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек", getConvertedIssues().size(), timeInSec, (1.0 * getConvertedIssues().size()) / timeInSec));
 
             // экспортируем данные в файл
             export2File();

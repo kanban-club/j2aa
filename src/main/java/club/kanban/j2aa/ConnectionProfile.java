@@ -37,7 +37,7 @@ public class ConnectionProfile {
     @Getter @Setter
     private String[] jiraFields;
 
-    @Value("${converter.use-max-column:false}")
+    @Value("${use-max-column:false}")
     @Getter
     private boolean useMaxColumn;
 

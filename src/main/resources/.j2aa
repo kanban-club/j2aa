@@ -6,6 +6,6 @@ sub-filter = created >= -12w
 output-file = csv/output.csv
 
 #jira-fields = issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary
-jira-fields = issuetype, labels, epic
+jira-fields = issuetype, labels
 
 #use-max-column = false

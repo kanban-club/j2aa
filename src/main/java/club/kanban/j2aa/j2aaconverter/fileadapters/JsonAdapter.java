@@ -1,6 +1,6 @@
 package club.kanban.j2aa.j2aaconverter.fileadapters;
 
-import club.kanban.j2aa.j2aaconverter.ExportableIssue;
+import club.kanban.j2aa.j2aaconverter.ConvertedIssue;
 import club.kanban.j2aa.jirarestclient.BoardColumn;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class JsonAdapter implements FileAdapter {
+public class JsonAdapter extends AbstractAdapter {
     @Override
     public String getDefaultExtension() {
         return "json";
@@ -25,7 +25,7 @@ public class JsonAdapter implements FileAdapter {
     }
 
     @Override
-    public String getHeaders(ExportableIssue expIssue) {
+    public String getHeaders(ConvertedIssue expIssue) {
         List<String> headers = new ArrayList<>(3
                 + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
@@ -42,7 +42,7 @@ public class JsonAdapter implements FileAdapter {
     private JsonAdapter() {}
 
     @Override
-    public String getValues(ExportableIssue expIssue) {
+    public String getValues(ConvertedIssue expIssue) {
         List<String> values = new ArrayList<>(3
                 + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
                 + expIssue.getAttributes().size());
