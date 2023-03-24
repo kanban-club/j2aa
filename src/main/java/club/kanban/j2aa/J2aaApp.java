@@ -2,23 +2,22 @@ package club.kanban.j2aa;
 
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
-import club.kanban.j2aa.jirarestclient.Board;
 import club.kanban.j2aa.jirarestclient.uilogger.UILogInterface;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import lombok.Getter;
 import net.rcarz.jiraclient.BasicCredentials;
-import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -28,15 +27,14 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.*;
+import java.util.Objects;
 
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
@@ -49,18 +47,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
 
-    // Ключи профиля подключения
-    public static final String KEY_BOARD_URL = "board_url";
-    public static final String KEY_OUTPUT_FILE = "output_file_name";
-    public static final String KEY_JQL_SUB_FILTER = "jql_sub_filter";
-    public static final String KEY_JIRA_FIELDS = "jira_fields";
-
     @Getter
     private final JFrame appFrame;
-
-    @Value("${board-url:}")
-    @Getter
-    private String boardUrl;
 
     @Value("${username:}")
     @Getter
@@ -70,29 +58,15 @@ public class J2aaApp extends JFrame implements UILogInterface {
     @Getter
     private String password;
 
-    @Value("${output-file:}")
+    @Autowired
     @Getter
-    private String outputFileName;
-
-    @Value("${sub-filter:}")
-    @Getter
-    private String jqlSubFilter;
-
-    @Value("${jira-fields:}")
-    @Getter
-    private String[] jiraFields;
-
-    @Getter
-    private File connProfile;
+    private ConnectionProfile connectionProfile;
     @Value("${user.dir}")
     private String lastConnFileDir;
 
     @Getter
     @Value("${" + KEY_VERSION + ":}")
     private String version;
-
-    @Value("${converter.use-max-column:false}")
-    private boolean useMaxColumn;
 
     private JPanel rootPanel;
     private JTextField fBoardURL;
@@ -139,7 +113,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         saveSettingsButton.addActionListener(actionEvent -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(lastConnFileDir));
-            chooser.setSelectedFile(getConnProfile());
+            chooser.setSelectedFile(getConnectionProfile().getFile());
             chooser.setDialogTitle("Укажите файл для сохранения настроек");
             chooser.setFileFilter(new FileNameExtensionFilter("Connection profiles (.xml)", "xml"));
             int returnVal = chooser.showSaveDialog(getAppFrame());
@@ -152,7 +126,10 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     if (file.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s уже существует. Перезаписать?", file.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION)
                         return;
 
-                    writeConnProfile(file);
+                    getData(this);
+                    connectionProfile.writeConnProfile(file);
+                    setAppTitle();
+
                     lastConnFileDir = file.getParent();
                     showMessageDialog(getAppFrame(), String.format("Настройки сохранены в файл %s", file.getName()), "Сохранение настроек", INFORMATION_MESSAGE);
                 } catch (IOException e) {
@@ -169,7 +146,9 @@ public class J2aaApp extends JFrame implements UILogInterface {
             int returnVal = chooser.showOpenDialog(getAppFrame());
             if (returnVal == APPROVE_OPTION) {
                 try {
-                    readConnProfile(chooser.getSelectedFile());
+                    connectionProfile.readConnProfile(chooser.getSelectedFile());
+                    setData(this);
+                    setAppTitle();
                     fLog.setText(null);
                     lastConnFileDir = chooser.getSelectedFile().getParent();
                 } catch (IOException ex) {
@@ -233,7 +212,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
             }
         }
 
-        SpringApplication.run(J2aaApp.class);
+//        SpringApplication.run(J2aaApp.class);
+            new SpringApplicationBuilder(J2aaApp.class).headless(false).run(args);
     }
 
     @PostConstruct
@@ -251,75 +231,18 @@ public class J2aaApp extends JFrame implements UILogInterface {
     }
 
     /**
-     * Загружает профиль подключения из заданного файла.
-     * В случае успеха этот файл становится активным профилем подключения
-     *
-     * @param file Файл для загрузки
-     * @throws IOException                      в случае если файл не найден
-     * @throws InvalidPropertiesFormatException если файл имеет неверный формат
-     */
-    protected void readConnProfile(File file) throws IOException, InvalidPropertiesFormatException {
-        Properties p = new Properties();
-        FileInputStream fis = new FileInputStream(file.getAbsoluteFile());
-
-        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml"))
-            p.loadFromXML(fis);
-        else
-            p.load(fis);
-
-        boardUrl = p.getProperty(KEY_BOARD_URL);
-        jqlSubFilter = p.getProperty(KEY_JQL_SUB_FILTER);
-        outputFileName = p.getProperty(KEY_OUTPUT_FILE);
-        jiraFields = (p.getProperty(KEY_JIRA_FIELDS) != null ? p.getProperty(KEY_JIRA_FIELDS).split("\\s*,\\s*") : new String[0]);
-
-        if (this.getBoardUrl() == null || this.getBoardUrl().trim().equals(""))
-            throw new InvalidPropertiesFormatException(String.format("Не заполнены обязательные поля %s",
-                    (this.getBoardUrl() == null || this.getBoardUrl().trim().equals("") ? " " + KEY_BOARD_URL : "")));
-        connProfile = file;
-        setData(this);
-        setAppTitle();
-    }
-
-    /**
-     * Записывает текущее состояние полей экранной формы в заданный file.
-     * В случае успеха новый файл становится активным профилем подключения
-     *
-     * @param file файл для записи
-     * @throws IOException в случае если не удается записать файл
-     */
-    private void writeConnProfile(File file) throws IOException {
-        getData(this);
-
-        Properties p = new Properties();
-        FileOutputStream fos = new FileOutputStream(file.getAbsoluteFile());
-        p.setProperty(KEY_BOARD_URL, this.getBoardUrl());
-        p.setProperty(KEY_OUTPUT_FILE, this.getOutputFileName().trim());
-        p.setProperty(KEY_JQL_SUB_FILTER, this.getJqlSubFilter());
-        p.setProperty(KEY_JIRA_FIELDS, String.join(",", this.getJiraFields()));
-
-        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml"))
-            p.storeToXML(fos, null);
-        else
-            p.store(fos, null);
-
-        fos.flush();
-        fos.close();
-        connProfile = file;
-        setAppTitle();
-    }
-
-    /**
      * Передает значения переменных приложения в поля экранной формы
      *
      * @param data класс приложения
      */
     public void setData(J2aaApp data) {
-        fBoardURL.setText(data.getBoardUrl());
-        fUsername.setText(data.getUserName());
-        fOutputFileName.setText(data.getOutputFileName());
-        fJQLSubFilter.setText(data.getJqlSubFilter());
+        fUsername.setText(data.userName);
         fPassword.setText(data.getPassword());
-        fJiraFields.setText(String.join(", ", data.jiraFields));
+
+        fBoardURL.setText(data.connectionProfile.getBoardAddress());
+        fOutputFileName.setText(data.connectionProfile.getOutputFileName());
+        fJQLSubFilter.setText(data.connectionProfile.getJqlSubFilter());
+        fJiraFields.setText(String.join(", ", data.connectionProfile.getJiraFields()));
     }
 
     /**
@@ -328,56 +251,35 @@ public class J2aaApp extends JFrame implements UILogInterface {
      * @param data класс приложения
      */
     public void getData(J2aaApp data) {
-        data.boardUrl = fBoardURL.getText();
         data.userName = fUsername.getText();
-        data.outputFileName = fOutputFileName.getText();
-        data.jqlSubFilter = fJQLSubFilter.getText();
         data.password = String.valueOf(fPassword.getPassword());
-        data.jiraFields = fJiraFields.getText().split("\\s*,\\s*");
+
+        data.connectionProfile.setBoardAddress(fBoardURL.getText());
+        data.connectionProfile.setOutputFileName(fOutputFileName.getText());
+        data.connectionProfile.setJqlSubFilter(fJQLSubFilter.getText());
+        data.connectionProfile.setJiraFields(fJiraFields.getText().split("\\s*,\\s*"));
     }
 
     private void doConversion() {
         getData(this);
 
         List<String> missedParams = new ArrayList<>(10);
-        if (getBoardUrl() == null || getBoardUrl().trim().isEmpty()) missedParams.add("Ссылка на доску");
-        if (getUserName() == null || getUserName().trim().isEmpty()) missedParams.add("Пользователь");
-        if (getPassword() == null || getPassword().trim().isEmpty()) missedParams.add("Пароль");
-        if (getOutputFileName() == null || getOutputFileName().trim().isEmpty())
+        if (getUserName() == null || getUserName().trim().isEmpty())
+            missedParams.add("Пользователь");
+        if (getPassword() == null || getPassword().trim().isEmpty())
+            missedParams.add("Пароль");
+        if (connectionProfile.getBoardAddress() == null || connectionProfile.getBoardAddress().trim().isEmpty())
+            missedParams.add("Ссылка на доску");
+        if (connectionProfile.getOutputFileName() == null || connectionProfile.getOutputFileName().trim().isEmpty())
             missedParams.add("Файл для экспорта");
+
         if (missedParams.size() > 0) {
             showMessageDialog(getAppFrame(), "Не указаны обязательные параметры: " + String.join(", ", missedParams), "Ошибка", ERROR_MESSAGE);
             return;
         }
 
-        // Парсим адрес доски. Вычисляя адрес jira и boardId (rapidView)
-        String jiraUrl;
-        String boardId = null;
-        try {
-            URL url = new URL(getBoardUrl());
-            jiraUrl = url.getProtocol() + "://" + url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort()) + "/";
-            String query = url.getQuery();
-            if (query != null && !query.trim().isEmpty()) {
-                String[] tokens = query.split("&");
-                for (String token : tokens) {
-                    int i = token.indexOf("=");
-                    if (i > 0 && token.substring(0, i).trim().equalsIgnoreCase("rapidView")) {
-                        boardId = token.substring(i + 1).trim();
-                        break;
-                    }
-                }
-            }
-
-            if (boardId == null || boardId.trim().isEmpty()
-                    || url.getHost() == null || url.getHost().trim().isEmpty())
-                throw new MalformedURLException("Указан неверный адрес доски");
-        } catch (MalformedURLException e) {
-            showMessageDialog(getAppFrame(), e.getMessage(), "Ошибка", ERROR_MESSAGE);
-            return;
-        }
-
         // Проверяем наличие выходного файла на диске
-        File outputFile = new File(getOutputFileName());
+        File outputFile = new File(connectionProfile.getOutputFileName());
         if (outputFile.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
             showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
             return;
@@ -388,19 +290,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
 
         // Подключаемся к доске и конвертируем данные
         try {
-            logger.info(String.format("Подключаемся к серверу: %s", jiraUrl));
             logger.info(String.format("Пользователь %s", getUserName()));
-
-            JiraClient jiraClient = new JiraClient(jiraUrl, new BasicCredentials(getUserName(), getPassword()));
-            Board board = Board.get(jiraClient.getRestClient(), Long.parseLong(boardId));
-
-            var converter = new J2aaConverter.Builder()
-                    .setBoard(board)
-                    .setJqlSubFilter(jqlSubFilter)
-                    .setUseMaxColumn(useMaxColumn)
-                    .setFields(jiraFields)
-                    .setOutputFile(outputFile)
-                    .build();
+            var converter = new J2aaConverter(new BasicCredentials(getUserName(), getPassword()), connectionProfile);
             converter.doConversion();
         } catch (JiraException e) {
             Exception ex = (Exception) e.getCause();
@@ -421,6 +312,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         } catch (InterruptedException e) {
             logger.info("Конвертация прервана");
         }
+
         conversionThread = null;
         enableControls(true);
     }
@@ -443,7 +335,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     public void setAppTitle() {
         String newTitle = DEFAULT_APP_TITLE
                 + ((!version.isEmpty()) ? " v" + version : "")
-                + (connProfile != null ? " [" + connProfile.getName() + "]" : "");
+                + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
         getAppFrame().setTitle(newTitle);
     }
 

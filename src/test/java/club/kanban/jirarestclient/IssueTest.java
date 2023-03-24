@@ -30,13 +30,13 @@ class IssueTest {
         boardConfig = new BoardConfig(null, Utils.getJSONObjectFromResource("testBoardConfig.json"));
 
         // прочитать доску
-        board = new Board(null, Utils.getJSONObjectFromResource("testBoard.json"));
+        board = Board.newInstance(null, Utils.getJSONObjectFromResource("testBoard.json"));
 
         // прочитать Issue
         issue = new Issue(null, Utils.getJSONObjectFromResource("testIssue.json"));
 
         // конвертировать Issue в BoardIssue
-        ExportableIssue exportableIssue = ExportableIssue.fromIssue(null, issue);
+        ExportableIssue exportableIssue = ExportableIssue.newInstance(null, issue);
 
         // загрузка нескольких Issues в BoardIssuesSet
         JSONObject jsonIssuesSet = (JSONObject) JSONSerializer.toJSON(Utils.getJSONObjectFromResource("testIssuesSet.json"));

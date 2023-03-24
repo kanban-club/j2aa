@@ -6,7 +6,12 @@ import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 
-import java.util.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class Board extends JiraResource {
     @Getter
@@ -15,17 +20,50 @@ public class Board extends JiraResource {
     /**
      * Creates a Board from a JSON payload.
      *
-     * @param restclient REST client instance
+     * @param restClient REST client instance
      * @param json       JSON payload
      */
-    public Board(RestClient restclient, JSONObject json) throws JiraException {
-        super(restclient, json);
+    protected Board(RestClient restClient, JSONObject json) throws JiraException {
+        super(restClient, json);
     }
 
-    public static Board get(RestClient restClient, long id) throws JiraException {
+    private static long getBoardId(URL url) throws MalformedURLException {
+        Objects.requireNonNull(url);
+
+        String strBoardId = null;
+        String query = url.getQuery();
+        if (query != null && !query.trim().isEmpty()) {
+            String[] tokens = query.split("&");
+            for (String token : tokens) {
+                int i = token.indexOf("=");
+                if (i > 0 && token.substring(0, i).trim().equalsIgnoreCase("rapidView")) {
+                    strBoardId = token.substring(i + 1).trim();
+                    break;
+                }
+            }
+        }
+
+        long boardId;
+        try {
+            Objects.requireNonNull(strBoardId);
+            boardId = Long.parseLong(Objects.requireNonNull(strBoardId));
+        } catch (Exception e) {
+            throw new MalformedURLException(String.format("Адрес (%s) не содержит ссылки на доску (параметр rapidView)", url));
+        }
+
+        return boardId;
+    }
+
+    public static Board newInstance(RestClient restClient, URL url) throws JiraException, MalformedURLException {
+        long id = Board.getBoardId(url);
         Board board = get(restClient, Board.class, RESOURCE_URI + "board/" + id);
         board.boardConfig = get(restClient, BoardConfig.class, RESOURCE_URI + "board/" + id + "/configuration");
         return board;
+    }
+
+    // TODO сделан только для тестов, возможно restClient стоит убрать и сделать null
+    public static Board newInstance(RestClient restClient, JSONObject json) throws JiraException {
+        return new Board(restClient, json);
     }
 
     public BoardIssuesSet getBoardIssuesSet(String jqlSubFilter,

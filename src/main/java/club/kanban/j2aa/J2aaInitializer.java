@@ -11,8 +11,12 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+import javax.swing.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
+
+import static javax.swing.JOptionPane.showMessageDialog;
 
 @Component
 public class J2aaInitializer implements ApplicationRunner {
@@ -20,12 +24,15 @@ public class J2aaInitializer implements ApplicationRunner {
     ApplicationContext context;
 
     @Autowired
+    ConnectionProfile connectionProfile;
+
+    @Autowired
     J2aaApp app;
 
     public static final String ARG_PROFILE = "profile";
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
 
         // Инициализация UI логгера
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -38,7 +45,13 @@ public class J2aaInitializer implements ApplicationRunner {
         }
 
         if (args.containsOption(ARG_PROFILE)) {
-            app.readConnProfile(new File(args.getOptionValues(ARG_PROFILE).get(0)));
+            try {
+                connectionProfile.readConnProfile(new File(args.getOptionValues(ARG_PROFILE).get(0)));
+            } catch (IOException e) {
+                showMessageDialog(app.getAppFrame(), e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+            }
+            app.setData(app);
+            app.setAppTitle();
         }
     }
 }

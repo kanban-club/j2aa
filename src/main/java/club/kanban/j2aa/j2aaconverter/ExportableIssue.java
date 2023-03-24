@@ -36,7 +36,7 @@ public class ExportableIssue {
     @Getter
     private J2aaConverter converter;
 
-    public static ExportableIssue fromIssue(J2aaConverter converter, Issue issue) throws JiraException {
+    public static ExportableIssue newInstance(J2aaConverter converter, Issue issue) throws JiraException {
         ExportableIssue exportableIssue = new ExportableIssue();
         exportableIssue.converter = converter;
 
@@ -45,14 +45,13 @@ public class ExportableIssue {
         exportableIssue.link = "";
         try {
             URL restApiUrl = new URL(issue.getSelf());
-            exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost()
-                    + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+            exportableIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
         } catch (MalformedURLException ignored) {
         }
 
         //Считываем запрашиваемые поля для Issue
         exportableIssue.attributes = new LinkedHashMap<>();
-        for(String field : converter.getJiraFields()) {
+        for (String field : converter.getProfile().getJiraFields()) {
             switch (field) {
                 case "projectkey":
                     exportableIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
@@ -79,16 +78,10 @@ public class ExportableIssue {
                     exportableIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
                     break;
                 case "components":
-                    exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents()
-                            .stream()
-                            .map(JiraResource::getName)
-                            .collect(Collectors.toList()) : new ArrayList<>(0));
+                    exportableIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "fixVersions":
-                    exportableIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions()
-                            .stream()
-                            .map(JiraResource::getName)
-                            .collect(Collectors.toList()) : new ArrayList<>(0));
+                    exportableIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "epic":
                     exportableIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
@@ -97,7 +90,7 @@ public class ExportableIssue {
             }
         }
 
-        exportableIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getUseMaxColumn());
+        exportableIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getProfile().isUseMaxColumn());
         exportableIssue.initBlockedDays(issue);
         return exportableIssue;
     }
@@ -119,17 +112,14 @@ public class ExportableIssue {
         //Добавляем начальный статус вручную т.к. в Jira его нет
         if (statusChanges.size() > 0)
             statuses.add(new Status(issue.getCreated(), statusChanges.get(0).getFrom(), statusChanges.get(0).getFromString()));
-        else
-            statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
+        else statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
 
         // Достраиваем цепочку статусов
         for (ChangeLogItem changeLogItem : statusChanges) {
             if (statuses.size() > 0) {
                 Status prevStatus = statuses.get(statuses.size() - 1);
-                if (prevStatus.getStatusId() == changeLogItem.getFrom())
-                    prevStatus.setDateOut(changeLogItem.getDate());
-                else
-                    throw new JiraException("Inconsistent statuses");
+                if (prevStatus.getStatusId() == changeLogItem.getFrom()) prevStatus.setDateOut(changeLogItem.getDate());
+                else throw new JiraException("Inconsistent statuses");
             }
 
             Status newStatus = new Status(changeLogItem.getDate(), changeLogItem.getTo(), changeLogItem.getToString());
@@ -154,11 +144,9 @@ public class ExportableIssue {
             if (columnId != null) {
                 if (columnLTs[columnId.intValue()] == null)
                     columnLTs[columnId.intValue()] = status.getCycleTimeInMillis();
-                else
-                    columnLTs[columnId.intValue()] += status.getCycleTimeInMillis();
+                else columnLTs[columnId.intValue()] += status.getCycleTimeInMillis();
 
-                if (columnId > maxColumnId)
-                    maxColumnId = columnId;
+                if (columnId > maxColumnId) maxColumnId = columnId;
             } else {
                 logger.info(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске", issue.getKey(), status.getName()));
             }
@@ -213,8 +201,7 @@ public class ExportableIssue {
             }
 
             // если колонка Backlog не сопоставлена ни с какими статусами, то сопоставляем ее с моментом создания задачи
-            if (columnTransitionsLog[0] == null)
-                columnTransitionsLog[0] = issue.getCreated();
+            if (columnTransitionsLog[0] == null) columnTransitionsLog[0] = issue.getCreated();
         }
     }
 
@@ -244,8 +231,7 @@ public class ExportableIssue {
                 }
             }
 
-            if (startOfBlockedTimePeriod != null)
-                blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
+            if (startOfBlockedTimePeriod != null) blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
         }
     }
 }

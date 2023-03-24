@@ -39,7 +39,7 @@ public class Utils {
 
     public static Board getTestBoard(String file) throws IOException, JiraException {
         JSONObject jsonObject = JSONObject.fromObject(Utils.getJSONObjectFromResource(file));
-        return new Board(null, jsonObject);
+        return Board.newInstance(null, jsonObject);
     }
 
     public static BoardConfig getTestBoardConfig(String file) throws IOException, JiraException {
