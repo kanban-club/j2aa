@@ -83,7 +83,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private JTextField fJiraFields;
     private JLabel labelsJiraFields;
 
-    private Thread conversionThread = null;
+    private volatile Thread conversionThread;
 
     public J2aaApp() {
         super();
