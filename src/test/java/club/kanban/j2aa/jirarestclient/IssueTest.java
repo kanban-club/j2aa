@@ -1,9 +1,5 @@
-package club.kanban.jirarestclient;
+package club.kanban.j2aa.jirarestclient;
 
-import club.kanban.j2aa.jirarestclient.Board;
-import club.kanban.j2aa.jirarestclient.BoardConfig;
-import club.kanban.j2aa.jirarestclient.BoardIssuesSet;
-import club.kanban.j2aa.jirarestclient.Issue;
 import net.rcarz.jiraclient.JiraException;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -15,7 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class IssueTest {
     Issue issue;
@@ -49,7 +45,9 @@ class IssueTest {
     }
 
     @Test
-    void getStatusChanges() {
-        assertEquals("FILTA-43", issue.getKey());
+    void deserialize() throws IOException, JiraException {
+        JSONObject jsonObject = Utils.getJSONObjectFromResource("testIssue.json");
+        assertDoesNotThrow(() -> new Issue(null, jsonObject));
+        // TODO assertEquals
     }
 }

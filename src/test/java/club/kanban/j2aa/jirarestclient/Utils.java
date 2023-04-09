@@ -1,6 +1,5 @@
-package club.kanban.jirarestclient;
+package club.kanban.j2aa.jirarestclient;
 
-import club.kanban.j2aa.jirarestclient.*;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSONArray;

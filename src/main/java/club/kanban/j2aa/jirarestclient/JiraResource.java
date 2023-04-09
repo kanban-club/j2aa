@@ -56,7 +56,7 @@ public class JiraResource {
     }
 
     /**
-     * Извлекает объект типа "extends JiraResource" из JSON объекта
+     * Извлекает объект типа из JSON объекта
      *
      * @param type       тип ресурса, который требуется получить из JSON
      * @param json       экземпляр JSONObject для парсинга
@@ -85,7 +85,7 @@ public class JiraResource {
     }
 
     /**
-     * Извлекает спискок ресурсов (extends JiraResource) из заданного JSON.
+     * Извлекает список ресурсов из заданного JSON.
      *
      * @param type       тип ресурса, который требуется получить из JSON
      * @param json  экземпляр JSONObject для парсинга
