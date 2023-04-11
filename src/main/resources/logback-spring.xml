@@ -1,0 +1,16 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5relative %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="UI" class="club.kanban.j2aa.jirarestclient.uilogger.UILogger"/>
+
+    <logger name="jdbc" level="OFF" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="UI" />
+    </root>
+</configuration>
