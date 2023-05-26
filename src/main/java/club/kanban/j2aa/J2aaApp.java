@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
@@ -27,14 +28,16 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
@@ -46,6 +49,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
+    private static final LocalDate expires = LocalDate.of(2023, 6, 16);
 
     @Getter
     private final JFrame appFrame;
@@ -83,7 +87,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private JTextField fJiraFields;
     private JLabel labelsJiraFields;
 
-    private volatile Thread conversionThread;
+    private volatile Thread conversionThread = null;
 
     public J2aaApp() {
         super();
@@ -197,6 +201,22 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 }
             }
         });
+        //TODO Удалить поскольку это дублирование следующего обработчика
+//        labelsJiraFields.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                super.mouseClicked(e);
+//                if (e.getClickCount() == 2) {
+//                    if (!labelsJiraFields.getText().isEmpty()) {
+//                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?", "Подтверждение", YES_NO_OPTION) != YES_NO_OPTION) {
+//                            return;
+//                        }
+//                    }
+//                    fJiraFields.setText("issuetype, labels");
+//                }
+//            }
+//        });
+
         labelsJiraFields.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -207,13 +227,27 @@ public class J2aaApp extends JFrame implements UILogInterface {
                             return;
                         }
                     }
-                    fJiraFields.setText("issuetype, labels");
+                    File configFile = new File(System.getProperty("user.home"), CONFIG_FILE_NAME);
+                    try (FileInputStream fileInputStream = new FileInputStream(configFile.getAbsoluteFile())) {
+                        Properties properties = new Properties();
+                        properties.load(fileInputStream);
+                        fJiraFields.setText(properties.getProperty("jira-fields"));
+                    } catch (Exception ignored) {}
+
                 }
             }
         });
     }
 
     public static void main(String[] args) {
+        if (expires != null && expires.isBefore(LocalDate.now())) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String errorMsg = String.format("Срок действия данной версии закончился %s.\nОбновите приложение до актуальной версии", expires.format(formatter));
+            showMessageDialog(null, errorMsg);
+            logger.info(errorMsg);
+            System.exit(-1);
+        }
+
         File configFile = new File(System.getProperty("user.home") + "/" + CONFIG_FILE_NAME);
         if (!configFile.exists()) {
             try {
@@ -336,11 +370,33 @@ public class J2aaApp extends JFrame implements UILogInterface {
         fOutputFileName.setEnabled(state);
         fUsername.setEnabled(state);
         fPassword.setEnabled(state);
+        fJiraFields.setEnabled(state);
     }
 
     public void setAppTitle() {
-        String newTitle = DEFAULT_APP_TITLE + ((!version.isEmpty()) ? " v" + version : "") + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
-        getAppFrame().setTitle(newTitle);
+        StringBuffer buffer = new StringBuffer(DEFAULT_APP_TITLE);
+        if (!version.isEmpty()) {
+            buffer.append(" v");
+            buffer.append(version);
+        }
+
+        if (expires != null) {
+            buffer.append(" (expires ");
+            buffer.append(expires);
+            buffer.append(")");
+        }
+
+        if (connectionProfile.getFile() != null) {
+            buffer.append(" [");
+            buffer.append(connectionProfile.getFile().getName());
+            buffer.append("]");
+        }
+        getAppFrame().setTitle(buffer.toString());
+
+        // TODO убрать закоменнтированный код
+//        String newTitle = DEFAULT_APP_TITLE + ((!version.isEmpty()) ? " v" + version : "")
+//                + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
+//        getAppFrame().setTitle(newTitle);
     }
 
     {

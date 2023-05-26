@@ -30,7 +30,7 @@ import java.util.List;
 
 public class J2aaConverter {
     private static final Logger logger = LoggerFactory.getLogger(J2aaConverter.class);
-
+    private static final int MAX_ALLOWED_ISSUES = 1000;
     private final BasicCredentials credentials;
     @Getter
     private final ConnectionProfile profile;
@@ -67,6 +67,11 @@ public class J2aaConverter {
             System.arraycopy(profile.getJiraFields(), 0, actualHttpFields, REQUIRED_HTTP_FIELDS.length, profile.getJiraFields().length);
 
             boardIssuesSet = board.getBoardIssuesSet(profile.getJqlSubFilter(), startAt, 0, actualHttpFields);
+
+            if (boardIssuesSet.getTotal() > MAX_ALLOWED_ISSUES) {
+                throw new JiraException(
+                        String.format("Число задач в выгрузке (%d) больше, чем максимально допустимое (%d). \nПопробуйте уточнить период или параметры в Доп.JQL фильтре.", boardIssuesSet.getTotal(), MAX_ALLOWED_ISSUES));
+            }
 
 //            if (boardIssuesSet.getIssues().size() > 0) { // TODO удалить закомментиованный код
             if (convertedIssues == null)

@@ -23,7 +23,7 @@ ${user.home}/.j2aa
 **password** = пароль пользователя
 
 **jira-fields** = список полей через запятую для выгрузки. 
-Допустимые значения: issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary
+Допустимые значения: issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions
 
 **board-url** = адрес доски
 

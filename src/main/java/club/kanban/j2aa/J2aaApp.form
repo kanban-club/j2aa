@@ -159,7 +159,7 @@
           </grid>
         </constraints>
         <properties>
-          <toolTipText value="issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary"/>
+          <toolTipText value="issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions"/>
         </properties>
       </component>
       <component id="da8d" class="javax.swing.JLabel" binding="labelsJiraFields">
