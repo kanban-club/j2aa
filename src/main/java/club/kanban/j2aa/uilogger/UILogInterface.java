@@ -1,4 +1,4 @@
-package club.kanban.j2aa.jirarestclient.uilogger;
+package club.kanban.j2aa.uilogger;
 
 public interface UILogInterface {
     void  logToUI(String msg);

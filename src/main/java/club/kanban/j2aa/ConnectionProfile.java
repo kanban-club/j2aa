@@ -22,19 +22,23 @@ public class ConnectionProfile {
     public static final String KEY_JIRA_FIELDS = "jira_fields";
 
     @Value("${board-url:}")
-    @Getter @Setter
+    @Getter
+    @Setter
     private String boardAddress;
 
     @Value("${output-file:}")
-    @Getter @Setter
+    @Getter
+    @Setter
     private String outputFileName;
 
     @Value("${sub-filter:}")
-    @Getter @Setter
+    @Getter
+    @Setter
     private String jqlSubFilter;
 
     @Value("${jira-fields:}")
-    @Getter @Setter
+    @Getter
+    @Setter
     private String[] jiraFields;
 
     @Value("${use-max-column:false}")
@@ -56,19 +60,20 @@ public class ConnectionProfile {
         Properties p = new Properties();
         FileInputStream fis = new FileInputStream(file.getAbsoluteFile());
 
-        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml"))
-            p.loadFromXML(fis);
-        else
-            p.load(fis);
+        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml")) p.loadFromXML(fis);
+        else p.load(fis);
 
         boardAddress = p.getProperty(KEY_BOARD_URL);
         jqlSubFilter = p.getProperty(KEY_JQL_SUB_FILTER);
         outputFileName = p.getProperty(KEY_OUTPUT_FILE);
-        jiraFields = (p.getProperty(KEY_JIRA_FIELDS) != null ? p.getProperty(KEY_JIRA_FIELDS).split("\\s*,\\s*") : new String[0]);
+        jiraFields = (p.getProperty(KEY_JIRA_FIELDS) != null ?
+                p.getProperty(KEY_JIRA_FIELDS).split("\\s*,\\s*") : new String[0]);
 
         if (this.getBoardAddress() == null || this.getBoardAddress().trim().equals(""))
-            throw new InvalidPropertiesFormatException(String.format("Не заполнены обязательные поля %s",
-                    (this.getBoardAddress() == null || this.getBoardAddress().trim().equals("") ? " " + KEY_BOARD_URL : "")));
+            throw new InvalidPropertiesFormatException(String.format(
+                            "Не заполнены обязательные поля %s",
+                            (this.getBoardAddress() == null || this.getBoardAddress().trim().equals("") ?
+                                    " " + KEY_BOARD_URL : "")));
         this.file = file;
     }
 
@@ -87,10 +92,11 @@ public class ConnectionProfile {
         p.setProperty(KEY_JQL_SUB_FILTER, this.getJqlSubFilter());
         p.setProperty(KEY_JIRA_FIELDS, String.join(",", this.getJiraFields()));
 
-        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml"))
+        if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml")) {
             p.storeToXML(fos, null);
-        else
+        } else {
             p.store(fos, null);
+        }
 
         fos.flush();
         fos.close();

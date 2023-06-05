@@ -2,25 +2,26 @@ package club.kanban.j2aa;
 
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
-import club.kanban.j2aa.jirarestclient.uilogger.UILogInterface;
+import club.kanban.j2aa.jiraclient.JiraClient;
+import club.kanban.j2aa.uilogger.UILogInterface;
+import club.kanban.j2aa.jiraclient.JiraException;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import lombok.Getter;
-import net.rcarz.jiraclient.BasicCredentials;
-import net.rcarz.jiraclient.JiraException;
-import net.rcarz.jiraclient.RestException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import javax.annotation.PostConstruct;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -32,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.time.LocalDate;
@@ -87,7 +89,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private JTextField fJiraFields;
     private JLabel labelsJiraFields;
 
-    private volatile Thread conversionThread = null;
+    private volatile Thread conversionThread;
 
     public J2aaApp() {
         super();
@@ -128,7 +130,9 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     if (FilenameUtils.getExtension(file.getAbsolutePath()).equals(""))
                         file = new File(file.getAbsoluteFile() + "." + DEFAULT_CONNECTION_PROFILE_FORMAT);
 
-                    if (file.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s уже существует. Перезаписать?", file.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION)
+                    if (file.exists() && showConfirmDialog(getAppFrame(),
+                            String.format("Файл %s уже существует. Перезаписать?", file.getAbsoluteFile()),
+                            "Подтверждение", YES_NO_OPTION) != YES_OPTION)
                         return;
 
                     getData(this);
@@ -136,7 +140,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     setAppTitle();
 
                     lastConnFileDir = file.getParent();
-                    showMessageDialog(getAppFrame(), String.format("Настройки сохранены в файл %s", file.getName()), "Сохранение настроек", INFORMATION_MESSAGE);
+                    showMessageDialog(getAppFrame(), String.format("Настройки сохранены в файл %s", file.getName()),
+                            "Сохранение настроек", INFORMATION_MESSAGE);
                 } catch (IOException e) {
                     showMessageDialog(getAppFrame(), "Ошибка сохранения настроек", "Ошибка", ERROR_MESSAGE);
                 }
@@ -157,7 +162,9 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     fLog.setText(null);
                     lastConnFileDir = chooser.getSelectedFile().getParent();
                 } catch (IOException ex) {
-                    showMessageDialog(getAppFrame(), String.format("Не удалось прочитать файл %s", chooser.getSelectedFile().getName()), "Ошибка чтения файла", ERROR_MESSAGE);
+                    showMessageDialog(getAppFrame(),
+                            String.format("Не удалось прочитать файл %s", chooser.getSelectedFile().getName()),
+                            "Ошибка чтения файла", ERROR_MESSAGE);
                 }
             }
         });
@@ -168,7 +175,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
 
             FileAdapterFactory faf = J2aaConfig.getContext().getBean(FileAdapterFactory.class);
             faf.getFormats().forEach((ext, desc) -> {
-                var filter = new FileNameExtensionFilter(desc, ext);
+                FileNameExtensionFilter filter = new FileNameExtensionFilter(desc, ext);
                 chooser.addChoosableFileFilter(filter);
                 if (ext.equalsIgnoreCase("csv")) chooser.setFileFilter(filter);
             });
@@ -192,7 +199,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
                     if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
                         try {
                             String url = fBoardURL.getText();
-                            if (showConfirmDialog(getAppFrame(), String.format("Перейти на доску '%s'?", url), "Открытие страницы", YES_NO_OPTION, INFORMATION_MESSAGE) == YES_OPTION) {
+                            if (showConfirmDialog(getAppFrame(), String.format("Перейти на доску '%s'?", url),
+                                    "Открытие страницы", YES_NO_OPTION, INFORMATION_MESSAGE) == YES_OPTION) {
                                 desktop.browse(URI.create(fBoardURL.getText()));
                             }
                         } catch (IOException ignored) {
@@ -201,21 +209,6 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 }
             }
         });
-        //TODO Удалить поскольку это дублирование следующего обработчика
-//        labelsJiraFields.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                super.mouseClicked(e);
-//                if (e.getClickCount() == 2) {
-//                    if (!labelsJiraFields.getText().isEmpty()) {
-//                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?", "Подтверждение", YES_NO_OPTION) != YES_NO_OPTION) {
-//                            return;
-//                        }
-//                    }
-//                    fJiraFields.setText("issuetype, labels");
-//                }
-//            }
-//        });
 
         labelsJiraFields.addMouseListener(new MouseAdapter() {
             @Override
@@ -223,7 +216,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 super.mouseClicked(e);
                 if (e.getClickCount() == 2) {
                     if (!labelsJiraFields.getText().isEmpty()) {
-                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?", "Подтверждение", YES_NO_OPTION) != YES_NO_OPTION) {
+                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?",
+                                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
                             return;
                         }
                     }
@@ -242,7 +236,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
     public static void main(String[] args) {
         if (expires != null && expires.isBefore(LocalDate.now())) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            String errorMsg = String.format("Срок действия данной версии закончился %s.\nОбновите приложение до актуальной версии", expires.format(formatter));
+            String errorMsg = String.format("Срок действия данной версии закончился %s.\nОбновите приложение до актуальной версии",
+                    expires.format(formatter));
             showMessageDialog(null, errorMsg);
             logger.info(errorMsg);
             System.exit(-1);
@@ -251,7 +246,12 @@ public class J2aaApp extends JFrame implements UILogInterface {
         File configFile = new File(System.getProperty("user.home") + "/" + CONFIG_FILE_NAME);
         if (!configFile.exists()) {
             try {
-                IOUtils.copy(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResourceAsStream(CONFIG_FILE_NAME)), new FileOutputStream(configFile));
+                IOUtils.copy(
+                        Objects.requireNonNull(Thread
+                                .currentThread()
+                                .getContextClassLoader()
+                                .getResourceAsStream(CONFIG_FILE_NAME)),
+                        new FileOutputStream(configFile));
             } catch (IOException e) {
                 logger.error("Ошибка создания конфигурационного файла '{}'", configFile.getAbsoluteFile());
             }
@@ -309,21 +309,29 @@ public class J2aaApp extends JFrame implements UILogInterface {
         getData(this);
 
         List<String> missedParams = new ArrayList<>(10);
-        if (getUserName() == null || getUserName().trim().isEmpty()) missedParams.add("Пользователь");
-        if (getPassword() == null || getPassword().trim().isEmpty()) missedParams.add("Пароль");
-        if (connectionProfile.getBoardAddress() == null || connectionProfile.getBoardAddress().trim().isEmpty())
+        if (getUserName() == null || getUserName().trim().isEmpty()) {
+            missedParams.add("Пользователь");
+        }
+        if (getPassword() == null || getPassword().trim().isEmpty()) {
+            missedParams.add("Пароль");
+        }
+        if (connectionProfile.getBoardAddress() == null || connectionProfile.getBoardAddress().trim().isEmpty()) {
             missedParams.add("Ссылка на доску");
-        if (connectionProfile.getOutputFileName() == null || connectionProfile.getOutputFileName().trim().isEmpty())
+        }
+        if (connectionProfile.getOutputFileName() == null || connectionProfile.getOutputFileName().trim().isEmpty()) {
             missedParams.add("Файл для экспорта");
-
+        }
         if (missedParams.size() > 0) {
-            showMessageDialog(getAppFrame(), "Не указаны обязательные параметры: " + String.join(", ", missedParams), "Ошибка", ERROR_MESSAGE);
+            showMessageDialog(getAppFrame(), "Не указаны обязательные параметры: "
+                    + String.join(", ", missedParams), "Ошибка", ERROR_MESSAGE);
             return;
         }
 
         // Проверяем наличие выходного файла на диске
         File outputFile = new File(connectionProfile.getOutputFileName());
-        if (outputFile.exists() && showConfirmDialog(getAppFrame(), String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()), "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
+        if (outputFile.exists() && showConfirmDialog(getAppFrame(),
+                String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()),
+                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
             showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
             return;
         }
@@ -332,36 +340,43 @@ public class J2aaApp extends JFrame implements UILogInterface {
         enableControls(false);
 
         // Подключаемся к доске и конвертируем данные
-        try {
+        try (JiraClient jiraClient =
+                     JiraClient.connectTo(connectionProfile.getBoardAddress(), getUserName(), getPassword())) {
             logger.info(String.format("Пользователь %s", getUserName()));
-            var converter = new J2aaConverter(new BasicCredentials(getUserName(), getPassword()), connectionProfile);
+            J2aaConverter converter = new J2aaConverter(jiraClient, connectionProfile);
             converter.doConversion();
         } catch (JiraException e) {
-            Exception ex = (Exception) e.getCause();
-            if (ex instanceof SSLPeerUnverifiedException)
-                logger.info(String.format("SSL peer unverified: %s", ex.getMessage()));
-            else if (ex instanceof UnknownHostException)
-                logger.info(String.format("Не удается соединиться с сервером %s", ex.getMessage()));
-            else if (ex instanceof RestException) {
-                if (((RestException) ex).getHttpStatusCode() == 401) {
-                    logger.info(ex.getMessage().substring(0, 56));
-                } else {
-                    logger.info(ex.getMessage());
-                }
-            } else logger.info(e.getMessage());
-        } catch (IOException e) {
-            logger.info(e.getMessage());
-        } catch (InterruptedException e) {
-            logger.info("Конвертация прервана");
+            if (e.getCause() instanceof SSLHandshakeException || e.getCause() instanceof SSLPeerUnverifiedException) {
+                logger.info("Ошибка проверки SSL сертификата хоста.\n"
+                                + "Попробуйте указать следующие параметры Java VM при запуске программы:\n"
+                                + " -Djavax.net.ssl.trustStore=<your_cacerts_store>\n"
+                                + " -Djavax.net.ssl.trustStorePassword=<your_cacerts_store_password>");
+            } else if (e.getCause() instanceof UnknownHostException) {
+                logger.info("Адрес не найден.\n'{}'", connectionProfile.getBoardAddress());
+            } else {
+                logger.info(e.getMessage());
+            }
+        } catch (URISyntaxException e) {
+            logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
+//        } catch (InterruptedException e) {
+//            logger.info("Конвертация прервана"); //TODO not tested
+        } catch (Exception e) {
+            if (e.getCause() instanceof InterruptedException) {
+                logger.info("Конвертация прервана.");
+            } else {
+                logger.info(e.getMessage());
+            }
         }
-
         conversionThread = null;
         enableControls(true);
     }
 
     private void enableControls(boolean state) {
-        if (state) startButton.setText("Конвертировать");
-        else startButton.setText("Остановить");
+        if (state) {
+            startButton.setText("Конвертировать");
+        } else {
+            startButton.setText("Остановить");
+        }
         loadSettingsButton.setEnabled(state);
         saveSettingsButton.setEnabled(state);
         selectOutputFileButton.setEnabled(state);
@@ -374,29 +389,19 @@ public class J2aaApp extends JFrame implements UILogInterface {
     }
 
     public void setAppTitle() {
-        StringBuffer buffer = new StringBuffer(DEFAULT_APP_TITLE);
+        StringBuilder builder = new StringBuilder(DEFAULT_APP_TITLE);
         if (!version.isEmpty()) {
-            buffer.append(" v");
-            buffer.append(version);
+            builder.append(" v").append(version);
         }
 
         if (expires != null) {
-            buffer.append(" (expires ");
-            buffer.append(expires);
-            buffer.append(")");
+            builder.append(" (expires ").append(expires).append(")");
         }
 
         if (connectionProfile.getFile() != null) {
-            buffer.append(" [");
-            buffer.append(connectionProfile.getFile().getName());
-            buffer.append("]");
+            builder.append(" [").append(connectionProfile.getFile().getName()).append("]");
         }
-        getAppFrame().setTitle(buffer.toString());
-
-        // TODO убрать закоменнтированный код
-//        String newTitle = DEFAULT_APP_TITLE + ((!version.isEmpty()) ? " v" + version : "")
-//                + (connectionProfile.getFile() != null ? " [" + connectionProfile.getFile().getName() + "]" : "");
-//        getAppFrame().setTitle(newTitle);
+        getAppFrame().setTitle(builder.toString());
     }
 
     {
@@ -465,7 +470,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         fJQLSubFilter.setText("");
         rootPanel.add(fJQLSubFilter, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         fJiraFields = new JTextField();
-        fJiraFields.setToolTipText("issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions, summary");
+        fJiraFields.setToolTipText("issuetype, labels, epic, priority, components, project, assignee, reporter, projectkey, fixVersions");
         rootPanel.add(fJiraFields, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         labelsJiraFields = new JLabel();
         labelsJiraFields.setText("Поля jira");

@@ -1,7 +1,7 @@
 package club.kanban.j2aa.j2aaconverter.fileadapters;
 
 import club.kanban.j2aa.j2aaconverter.ConvertedIssue;
-import club.kanban.j2aa.jirarestclient.BoardColumn;
+import club.kanban.j2aa.jiraclient.dto.boardconfig.columnconfig.column.Column;
 import org.springframework.stereotype.Repository;
 
 import java.text.DateFormat;
@@ -25,14 +25,17 @@ public class JsonAdapter extends AbstractAdapter {
     }
 
     @Override
-    public String getHeaders(ConvertedIssue expIssue) {
-        List<String> headers = new ArrayList<>(3
-                + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
-                + expIssue.getAttributes().size());
+    public String getHeaders(ConvertedIssue convertedIssue) {
+        List<Column> columns = convertedIssue.getConverter().getBoardConfig().getColumnConfig().getColumns();
+        List<String> headers = new ArrayList<>(3 + columns.size() + convertedIssue.getAttributes().size());
+
         headers.addAll(Arrays.asList("ID", "Link", "Name"));
-        for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns())
-            headers.add(boardColumn.getName());
-        headers.addAll(expIssue.getAttributes().keySet());
+        for (Column column : columns) {
+            headers.add(column.getName());
+        }
+        headers.addAll(convertedIssue.getAttributes().keySet());
+        headers.addAll(Arrays.asList("Blocked Days", "Blocked"));
+
         return "[" + headers.stream()
                 .map(s -> "\"" + Utils.escapeString(s) + "\"")
                 .collect(Collectors.joining(","))
@@ -42,20 +45,22 @@ public class JsonAdapter extends AbstractAdapter {
     private JsonAdapter() {}
 
     @Override
-    public String getValues(ConvertedIssue expIssue) {
-        List<String> values = new ArrayList<>(3
-                + expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns().size()
-                + expIssue.getAttributes().size());
-        values.addAll(Arrays.asList(expIssue.getKey(), expIssue.getLink(), expIssue.getName()));
+    public String getValues(ConvertedIssue convertedIssue) {
+        List<Column> columns = convertedIssue.getConverter().getBoardConfig().getColumnConfig().getColumns();
+        List<String> values = new ArrayList<>(3 + columns.size() + convertedIssue.getAttributes().size());
+
+        values.addAll(Arrays.asList(
+                convertedIssue.getKey(),
+                convertedIssue.getLink(),
+                convertedIssue.getName()));
 
         DateFormat df = new SimpleDateFormat(Utils.DEFAULT_DATETIME_FORMAT);
-
-        for (BoardColumn boardColumn : expIssue.getConverter().getBoard().getBoardConfig().getBoardColumns()) {
-            Date date = expIssue.getColumnTransitionsLog()[(int) boardColumn.getId()];
+        for (int i = 0; i < columns.size(); i++) {
+            Date date = convertedIssue.getColumnTransitionsLog()[i];
             values.add(date != null ? df.format(date) : "");
         }
 
-        expIssue.getAttributes().forEach((k, v) -> {
+        convertedIssue.getAttributes().forEach((k, v) -> {
             if (v instanceof String) {
                 values.add(Utils.escapeString((String) v));
             } else if (v instanceof List<?> && ((List<?>) v).size() > 0) {
@@ -68,6 +73,9 @@ public class JsonAdapter extends AbstractAdapter {
             }
         });
 
+        values.add(String.valueOf(convertedIssue.getBlockedDays()));
+        values.add(convertedIssue.isBlocked() ? "yes" : "no");
+        
         return "\n,[" + values.stream()
                 .map(s -> "\"" + Utils.escapeString(s) + "\"")
                 .collect(Collectors.joining(","))

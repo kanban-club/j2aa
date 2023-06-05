@@ -3,7 +3,7 @@ package club.kanban.j2aa;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
-import club.kanban.j2aa.jirarestclient.uilogger.UILogger;
+import club.kanban.j2aa.uilogger.UILogger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;

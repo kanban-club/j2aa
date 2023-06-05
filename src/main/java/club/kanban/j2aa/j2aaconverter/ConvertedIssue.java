@@ -1,8 +1,15 @@
 package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.j2aa.jirarestclient.*;
+import club.kanban.j2aa.jiraclient.JiraException;
+import club.kanban.j2aa.jiraclient.dto.boardconfig.BoardConfig;
+import club.kanban.j2aa.jiraclient.dto.boardconfig.columnconfig.column.Column;
+import club.kanban.j2aa.jiraclient.dto.boardconfig.columnconfig.column.Status;
+import club.kanban.j2aa.jiraclient.dto.issue.Issue;
+import club.kanban.j2aa.jiraclient.dto.issue.changelog.history.History;
+import club.kanban.j2aa.jiraclient.dto.issue.changelog.history.HistoryItem;
+import club.kanban.j2aa.jiraclient.dto.issue.fields.Fields;
+import club.kanban.j2aa.jiraclient.dto.issue.fields.Resource;
 import lombok.Getter;
-import net.rcarz.jiraclient.JiraException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +41,11 @@ public class ConvertedIssue {
     @Getter
     private Long blockedDays;
     @Getter
+    private boolean blocked;
+    @Getter
     private J2aaConverter converter;
+    private final List<ChangeLogItem> statusChanges = new ArrayList<>(10);
+    private final List<ChangeLogItem> flaggedChanges = new ArrayList<>(10);
 
     public static ConvertedIssue newInstance(J2aaConverter converter, Issue issue) throws JiraException {
         ConvertedIssue convertedIssue = new ConvertedIssue();
@@ -45,54 +56,82 @@ public class ConvertedIssue {
         convertedIssue.link = "";
         try {
             URL restApiUrl = new URL(issue.getSelf());
-            convertedIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() + (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+            convertedIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() +
+                    (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
         } catch (MalformedURLException ignored) {
         }
 
         //Считываем запрашиваемые поля для Issue
         convertedIssue.attributes = new LinkedHashMap<>();
-        for (String field : converter.getProfile().getJiraFields()) {
-            switch (field) {
+        Fields fields
+                = issue.getFields();
+        for (String jiraField : converter.getProfile().getJiraFields()) {
+            switch (jiraField) {
                 case "projectkey":
-                    convertedIssue.attributes.put("Project Key", issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
+                    convertedIssue.attributes.put("Project Key",
+                            issue.getKey() != null ? issue.getKey().substring(0, issue.getKey().indexOf("-")) : "");
                     break;
                 case "summary":
-                    convertedIssue.name = (issue.getSummary() != null) ? issue.getSummary() : "";
+                    convertedIssue.name = (fields.getSummary() != null) ? fields.getSummary() : "";
                     break;
                 case "project":
-                    convertedIssue.attributes.put("Project", issue.getProject() != null ? issue.getProject().getName() : "");
+                    convertedIssue.attributes.put("Project",
+                            fields.getProject() != null ? fields.getProject().getName() : "");
                     break;
                 case "issuetype":
-                    convertedIssue.attributes.put("Issue Type", issue.getIssueType() != null ? issue.getIssueType().getName() : "");
+                    convertedIssue.attributes.put("Issue Type",
+                            fields.getIssueType() != null ? fields.getIssueType().getName() : "");
                     break;
                 case "assignee":
-                    convertedIssue.attributes.put("Assignee", issue.getAssignee() != null ? issue.getAssignee().getAttribute("displayName") : "");
+                    convertedIssue.attributes.put("Assignee",
+                            fields.getAssignee() != null ? fields.getAssignee().getDisplayName() : "");
                     break;
                 case "reporter":
-                    convertedIssue.attributes.put("Reporter", issue.getReporter() != null ? issue.getReporter().getAttribute("displayName") : "");
+                    convertedIssue.attributes.put("Reporter",
+                            fields.getReporter() != null ? fields.getReporter().getDisplayName() : "");
                     break;
                 case "priority":
-                    convertedIssue.attributes.put("Priority", issue.getPriority() != null ? issue.getPriority().getName() : "");
+                    convertedIssue.attributes.put("Priority",
+                            fields.getPriority() != null ? fields.getPriority().getName() : "");
                     break;
                 case "labels":
-                    convertedIssue.attributes.put("Labels", issue.getLabels() != null ? issue.getLabels() : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Labels",
+                            fields.getLabels() != null ? fields.getLabels() : new ArrayList<>(0));
                     break;
                 case "components":
-                    convertedIssue.attributes.put("Components", issue.getComponents() != null ? issue.getComponents().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Components",
+                            fields.getComponents() != null ? fields.getComponents().stream()
+                                    .map(Resource::getName)
+                                    .collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "fixVersions":
-                    convertedIssue.attributes.put("Fix Versions", issue.getFixVersions() != null ? issue.getFixVersions().stream().map(JiraResource::getName).collect(Collectors.toList()) : new ArrayList<>(0));
+                    convertedIssue.attributes.put("Fix Versions",
+                            fields.getFixVersions() != null ? fields.getFixVersions().stream()
+                                    .map(Resource::getName)
+                                    .collect(Collectors.toList()) : new ArrayList<>(0));
                     break;
                 case "epic":
-                    convertedIssue.attributes.put("Epic Key", issue.getEpic() != null ? issue.getEpic().getKey() : "");
-                    convertedIssue.attributes.put("Epic Name", issue.getEpic() != null ? issue.getEpic().getName() : "");
+                    convertedIssue.attributes.put("Epic Key",
+                            fields.getEpic() != null ? fields.getEpic().getKey() : "");
+                    convertedIssue.attributes.put("Epic Name",
+                            fields.getEpic() != null ? fields.getEpic().getName() : "");
                     break;
             }
         }
 
-        convertedIssue.initTransitionsLog(issue, converter.getBoard().getBoardConfig(), converter.getProfile().isUseMaxColumn());
-        convertedIssue.initBlockedDays(issue);
+        convertedIssue.initTransitionsLog(issue, converter.getBoardConfig(), converter.getProfile().isUseMaxColumn());
+        convertedIssue.initBlockedDays();
+
+        if (convertedIssue.isBlockedInDone()) {
+            logger.info("{} находится в конечном статусе доски с флагом блокировки", issue.getKey());
+        }
+
         return convertedIssue;
+    }
+
+    private boolean isBlockedInDone() {
+        return blocked && columnTransitionsLog.length > 0
+                && columnTransitionsLog[columnTransitionsLog.length - 1] != null;
     }
 
     private static long getDaysBetween(Date start, Date end) {
@@ -103,52 +142,68 @@ public class ConvertedIssue {
 
     private void initTransitionsLog(Issue issue, BoardConfig boardConfig, boolean useMaxColumn) throws JiraException {
         // 1.Отсортировать переходы статусов по времени
-        List<ChangeLogItem> statusChanges = issue.getStatusChanges();
+        parseChangelog(issue);
+
         statusChanges.sort(Comparator.comparing(ChangeLogItem::getDate));
 
         // 2.Создать цепочку статусов по истории переходов
-        List<Status> statuses = new ArrayList<>(20);
+        List<IssueStatus> issueStatuses = new ArrayList<>(20);
 
         //Добавляем начальный статус вручную т.к. в Jira его нет
         if (statusChanges.size() > 0)
-            statuses.add(new Status(issue.getCreated(), statusChanges.get(0).getFrom(), statusChanges.get(0).getFromString()));
-        else statuses.add(new Status(issue.getCreated(), issue.getStatus().getId(), issue.getStatus().getName()));
+            issueStatuses.add(new IssueStatus(issue.getFields().getCreated(),
+                    statusChanges.get(0).getFrom(), statusChanges.get(0).getFromString()));
+        else
+            issueStatuses.add(new IssueStatus(issue.getFields().getCreated(),
+                    issue.getFields().getStatus().getId(), issue.getFields().getStatus().getName()));
 
         // Достраиваем цепочку статусов
         for (ChangeLogItem changeLogItem : statusChanges) {
-            if (statuses.size() > 0) {
-                Status prevStatus = statuses.get(statuses.size() - 1);
-                if (prevStatus.getStatusId() == changeLogItem.getFrom()) prevStatus.setDateOut(changeLogItem.getDate());
+            if (issueStatuses.size() > 0) {
+                IssueStatus prevIssueStatus = issueStatuses.get(issueStatuses.size() - 1);
+                if (prevIssueStatus.getStatusId() == changeLogItem.getFrom())
+                    prevIssueStatus.setDateOut(changeLogItem.getDate());
                 else throw new JiraException("Inconsistent statuses");
             }
 
-            Status newStatus = new Status(changeLogItem.getDate(), changeLogItem.getTo(), changeLogItem.getToString());
-            statuses.add(newStatus);
+            IssueStatus newIssueStatus = new IssueStatus(
+                    changeLogItem.getDate(),
+                    changeLogItem.getTo(),
+                    changeLogItem.getToString());
+
+            issueStatuses.add(newIssueStatus);
         }
 
         // 3. Подсчитать время, проведенное в колонках
-        Long[] columnLTs = new Long[boardConfig.getBoardColumns().size()];
+        Long[] columnLTs = new Long[boardConfig.getColumnConfig().getColumns().size()];
         Map<Long, Long> status2Column = new HashMap<>(20);
 
-        // Инициализирум рабочие массивы и делаем маппинг статусов в таблицы
-        for (BoardColumn boardColumn : boardConfig.getBoardColumns()) {
-            for (BoardColumnStatus boardColumnStatus : boardColumn.getStatuses())
-                status2Column.put(boardColumnStatus.getId(), boardColumn.getId());
-            columnLTs[(int) boardColumn.getId()] = null;
+        // Инициализируем рабочие массивы и делаем маппинг статусов в таблицы
+        List<Column> columns = boardConfig.getColumnConfig().getColumns();
+        for (int i = 0; i < columns.size(); i++) {
+            Column column = columns.get(i);
+            for (Status boardColumnStatus : column.getStatuses())
+                status2Column.put(boardColumnStatus.getId(), (long) i);
+            columnLTs[i] = null;
         }
 
         //считаем время цикла в каждом столбце
         long maxColumnId = 0;
-        for (Status status : statuses) {
-            Long columnId = status2Column.get(status.getStatusId());
+        for (IssueStatus issueStatus : issueStatuses) {
+            Long columnId = status2Column.get(issueStatus.getStatusId());
             if (columnId != null) {
-                if (columnLTs[columnId.intValue()] == null)
-                    columnLTs[columnId.intValue()] = status.getCycleTimeInMillis();
-                else columnLTs[columnId.intValue()] += status.getCycleTimeInMillis();
+                if (columnLTs[columnId.intValue()] == null) {
+                    columnLTs[columnId.intValue()] = issueStatus.getCycleTimeInMillis();
+                } else {
+                    columnLTs[columnId.intValue()] += issueStatus.getCycleTimeInMillis();
+                }
 
-                if (columnId > maxColumnId) maxColumnId = columnId;
+                if (columnId > maxColumnId) {
+                    maxColumnId = columnId;
+                }
             } else {
-                logger.info(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске", issue.getKey(), status.getName()));
+                logger.info(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске",
+                                issue.getKey(), issueStatus.getName()));
             }
         }
 
@@ -159,20 +214,20 @@ public class ConvertedIssue {
         // Определяем первый столбец доски в который попала задача на доске
         Date firstDate = null;
         Long firstColumnId = null;
-        for (Status status : statuses) {
-
-            Long columnId = status2Column.get(status.getStatusId());
+        for (IssueStatus issueStatus : issueStatuses) {
+            Long columnId = status2Column.get(issueStatus.getStatusId());
             if (columnId != null) {
                 if (firstDate == null) {
-                    // Инициалихируем первое значение firstColumnId & firstDate
-                    if (columnId <= (useMaxColumn ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
-                        firstDate = status.getDateIn();
+                    // Инициализируем первое значение firstColumnId & firstDate
+                    Resource lastIssueStatus = issue.getFields().getStatus();
+                    if (columnId <= (useMaxColumn ? maxColumnId : status2Column.get(lastIssueStatus.getId()))) {
+                        firstDate = issueStatus.getDateIn();
                         firstColumnId = columnId;
                     }
                 } else {
-                    if (firstDate.after(status.getDateIn())) {
-                        // Если нашли перезод раньше нынешнего, то считаем его первым в цепочке
-                        firstDate = status.getDateIn();
+                    if (firstDate.after(issueStatus.getDateIn())) {
+                        // Если нашли переход раньше нынешнего, то считаем его первым в цепочке
+                        firstDate = issueStatus.getDateIn();
                         firstColumnId = columnId;
                     }
                 }
@@ -191,7 +246,9 @@ public class ConvertedIssue {
             columnId++;
 
             //далее рассчитываем новые даты, по всем остальным столбцам доски
-            while (columnId < columnLTs.length && columnId <= (useMaxColumn ? maxColumnId : status2Column.get(issue.getStatus().getId()))) {
+            Resource lastIssueStatus = issue.getFields().getStatus();
+            while (columnId < columnLTs.length
+                    && columnId <= (useMaxColumn ? maxColumnId : status2Column.get(lastIssueStatus.getId()))) {
                 if (columnLTs[(int) columnId] != null) {
                     columnTransitionsLog[(int) columnId] = new Date(prevDate.getTime() + leadTimeMillis);
                     prevDate = columnTransitionsLog[(int) columnId];
@@ -201,19 +258,16 @@ public class ConvertedIssue {
             }
 
             // если колонка Backlog не сопоставлена ни с какими статусами, то сопоставляем ее с моментом создания задачи
-            if (columnTransitionsLog[0] == null) columnTransitionsLog[0] = issue.getCreated();
+            if (columnTransitionsLog[0] == null) columnTransitionsLog[0] = issue.getFields().getCreated();
         }
     }
 
-    private void initBlockedDays(Issue issue) {
-        List<ChangeLogItem> flaggedChanges = issue.getFlaggedChanges();
+    private void initBlockedDays() {
         flaggedChanges.sort(Comparator.comparing(ChangeLogItem::getDate));
 
         blockedDays = (long) 0;
 
-        List<ChangeLogItem> statusChanges = issue.getStatusChanges();
-
-        if (statusChanges != null && statusChanges.size() > 0) {
+        if (statusChanges.size() > 0) {
             Date startWFDate = statusChanges.get(0).getDate();
             Date endWFDate = statusChanges.get(statusChanges.size() - 1).getDate();
 
@@ -222,16 +276,39 @@ public class ConvertedIssue {
             for (ChangeLogItem fc : flaggedChanges) {
                 if (fc.getDate().compareTo(startWFDate) >= 0 && fc.getDate().compareTo(endWFDate) <= 0) {
                     if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                        if (startOfBlockedTimePeriod == null) startOfBlockedTimePeriod = fc.getDate();
+                        if (startOfBlockedTimePeriod == null)
+                            startOfBlockedTimePeriod = fc.getDate();
                     } else if (fc.getFromString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                        if (startOfBlockedTimePeriod == null) startOfBlockedTimePeriod = startWFDate;
+                        if (startOfBlockedTimePeriod == null)
+                            startOfBlockedTimePeriod = startWFDate;
                         blockedDays += getDaysBetween(startOfBlockedTimePeriod, fc.getDate());
                         startOfBlockedTimePeriod = null;
                     }
                 }
             }
 
-            if (startOfBlockedTimePeriod != null) blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
+            blocked = startOfBlockedTimePeriod != null;
+            if (blocked) {
+                blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
+            }
+        }
+    }
+
+    private void parseChangelog(Issue issue) {
+        if (issue.getChangelog() != null && issue.getChangelog().getHistories() != null) {
+            for (History history : issue.getChangelog().getHistories()) {
+                for (HistoryItem item : history.getHistoryItems()) {
+                    switch (item.getField()) {
+                        case "status":
+                            statusChanges.add(ChangeLogItem.get(history, item, 0));
+                            break;
+                        case "Flagged":
+                            flaggedChanges.add(ChangeLogItem.get(history, item,
+                                    ChangeLogItem.SKIP_FROM | ChangeLogItem.SKIP_TO));
+                            break;
+                    }
+                }
+            }
         }
     }
 }
