@@ -2,7 +2,10 @@ package club.kanban.j2aa.jiraclient.dto.boardconfig;
 
 import club.kanban.j2aa.jiraclient.dto.JiraResource;
 import club.kanban.j2aa.jiraclient.dto.boardconfig.columnconfig.ColumnConfig;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 @Getter

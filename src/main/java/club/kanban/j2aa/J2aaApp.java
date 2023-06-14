@@ -3,8 +3,8 @@ package club.kanban.j2aa;
 import club.kanban.j2aa.j2aaconverter.J2aaConverter;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
 import club.kanban.j2aa.jiraclient.JiraClient;
-import club.kanban.j2aa.uilogger.UILogInterface;
 import club.kanban.j2aa.jiraclient.JiraException;
+import club.kanban.j2aa.uilogger.UILogInterface;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
@@ -17,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLHandshakeException;
@@ -32,14 +30,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Properties;
 
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
@@ -51,7 +56,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
-    private static final LocalDate expires = LocalDate.of(2023, 6, 16);
+    private static final LocalDate expires = LocalDate.of(2023, 7, 02);
 
     @Getter
     private final JFrame appFrame;
@@ -73,6 +78,14 @@ public class J2aaApp extends JFrame implements UILogInterface {
     @Getter
     @Value("${" + KEY_VERSION + ":}")
     private String version;
+
+    @Getter
+    @Value("${javax.net.ssl.trustStore:}")
+    private String trustStore;
+
+    @Getter
+    @Value("${javax.net.ssl.trustStorePassword:}")
+    private String trustStorePassword;
 
     private JPanel rootPanel;
     private JTextField fBoardURL;
@@ -113,10 +126,15 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 conversionThread = new Thread(this::doConversion);
                 conversionThread.start();
             } else {
-                logger.info("Прерывание конвертации ...");
-                conversionThread.interrupt();
+                if (conversionThread.isAlive()) {
+                    logger.info("Прерывание конвертации ...");
+                    conversionThread.interrupt();
+                } else {
+                    conversionThread = null;
+                }
             }
         });
+
         saveSettingsButton.addActionListener(actionEvent -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(lastConnFileDir));
@@ -216,8 +234,11 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 super.mouseClicked(e);
                 if (e.getClickCount() == 2) {
                     if (!labelsJiraFields.getText().isEmpty()) {
-                        if (showConfirmDialog(getAppFrame(), "Заменить настройки для полей jira на значения по-умолчанию?",
-                                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
+                        if (showConfirmDialog(
+                                getAppFrame(),
+                                "Заменить настройки для полей jira на значения по-умолчанию?",
+                                "Подтверждение",
+                                YES_NO_OPTION) != YES_OPTION) {
                             return;
                         }
                     }
@@ -226,7 +247,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
                         Properties properties = new Properties();
                         properties.load(fileInputStream);
                         fJiraFields.setText(properties.getProperty("jira-fields"));
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
 
                 }
             }
@@ -236,7 +258,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
     public static void main(String[] args) {
         if (expires != null && expires.isBefore(LocalDate.now())) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            String errorMsg = String.format("Срок действия данной версии закончился %s.\nОбновите приложение до актуальной версии",
+            String errorMsg = String.format(
+                    "Срок действия данной версии закончился %s.\nОбновите приложение до актуальной версии",
                     expires.format(formatter));
             showMessageDialog(null, errorMsg);
             logger.info(errorMsg);
@@ -327,13 +350,22 @@ public class J2aaApp extends JFrame implements UILogInterface {
             return;
         }
 
+        //TODO
         // Проверяем наличие выходного файла на диске
+//        File outputFile = new File(connectionProfile.getOutputFileName());
+//        if (outputFile.exists() && showConfirmDialog(getAppFrame(),
+//                String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()),
+//                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
+//            showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
+//            return;
+//        }
+
         File outputFile = new File(connectionProfile.getOutputFileName());
-        if (outputFile.exists() && showConfirmDialog(getAppFrame(),
-                String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()),
-                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
-            showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
-            return;
+        if (outputFile.exists()) {
+            try {
+                archiveFile(outputFile);
+            } catch (IOException ignored) {
+            }
         }
 
         fLog.setText(null);
@@ -348,15 +380,15 @@ public class J2aaApp extends JFrame implements UILogInterface {
         } catch (JiraException e) {
             if (e.getCause() instanceof SSLHandshakeException || e.getCause() instanceof SSLPeerUnverifiedException) {
                 logger.info("Ошибка проверки SSL сертификата хоста.\n"
-                                + "Попробуйте указать следующие параметры Java VM при запуске программы:\n"
-                                + " -Djavax.net.ssl.trustStore=<your_cacerts_store>\n"
-                                + " -Djavax.net.ssl.trustStorePassword=<your_cacerts_store_password>");
+                        + "Попробуйте указать следующие параметры Java VM при запуске программы:\n"
+                        + " -Djavax.net.ssl.trustStore=<your_cacerts_store>\n"
+                        + " -Djavax.net.ssl.trustStorePassword=<your_cacerts_store_password>");
             } else if (e.getCause() instanceof UnknownHostException) {
                 logger.info("Адрес не найден.\n'{}'", connectionProfile.getBoardAddress());
             } else {
                 logger.info(e.getMessage());
             }
-        } catch (URISyntaxException e) {
+        } catch (MalformedURLException e) {
             logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
 //        } catch (InterruptedException e) {
 //            logger.info("Конвертация прервана"); //TODO not tested
@@ -369,6 +401,22 @@ public class J2aaApp extends JFrame implements UILogInterface {
         }
         conversionThread = null;
         enableControls(true);
+    }
+
+    private boolean archiveFile(File file) throws IOException {
+        BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+        LocalDateTime fileDateTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(attr.lastModifiedTime().toMillis()), ZoneId.systemDefault());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("_yyyyMMdd_HHmm");
+
+        String path = FilenameUtils.getFullPath(file.getAbsolutePath());
+        String name = FilenameUtils.getBaseName(file.getAbsolutePath());
+        String ext = FilenameUtils.getExtension(file.getAbsolutePath());
+        File newFile = new File(path
+                + name
+                + fileDateTime.format(formatter) + (!ext.isEmpty() ? "." + ext : "")
+        );
+        return file.renameTo(newFile);
     }
 
     private void enableControls(boolean state) {

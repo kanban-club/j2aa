@@ -42,7 +42,8 @@ public class JsonAdapter extends AbstractAdapter {
                 + "]";
     }
 
-    private JsonAdapter() {}
+    private JsonAdapter() {
+    }
 
     @Override
     public String getValues(ConvertedIssue convertedIssue) {
@@ -75,7 +76,7 @@ public class JsonAdapter extends AbstractAdapter {
 
         values.add(String.valueOf(convertedIssue.getBlockedDays()));
         values.add(convertedIssue.isBlocked() ? "yes" : "no");
-        
+
         return "\n,[" + values.stream()
                 .map(s -> "\"" + Utils.escapeString(s) + "\"")
                 .collect(Collectors.joining(","))

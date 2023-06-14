@@ -53,6 +53,14 @@ public class J2aaInitializer implements ApplicationRunner {
             app.setData(app);
             app.setAppTitle();
         }
+
+        // Настраиваем ssl сертификаты из конфигурационного файла
+        if (!app.getTrustStore().isEmpty()) {
+            System.setProperty("javax.net.ssl.trustStore", app.getTrustStore());
+        }
+        if (!app.getTrustStorePassword().isEmpty()) {
+            System.setProperty("javax.net.ssl.trustStorePassword", app.getTrustStorePassword());
+        }
     }
 }
 

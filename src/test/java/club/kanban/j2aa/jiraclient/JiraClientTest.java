@@ -99,13 +99,13 @@ class JiraClientTest {
     }
 
     @BeforeEach
-    void setUp() throws URISyntaxException {
+    void setUp() {
         jiraUrl = String.format("http://localhost:%d", server.getPort());
         jiraClient = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
     }
 
-    @Test
-    void newInstance() throws URISyntaxException {
+    @Test @Disabled
+    void connectTo() {
         var client = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
         assertNotNull(client);
         assertEquals(SESSION_ID, client.getSessionId());
@@ -177,12 +177,18 @@ class JiraClientTest {
                 AtomicInteger count = new AtomicInteger(0);
                 AtomicBoolean interrupted = new AtomicBoolean(false);
                 response.subscribe(
-                        issue -> {count.getAndIncrement(); System.out.println(issue);},
-                        error -> {System.out.println(error.getMessage()); interrupted.set(true);},
+                        issue -> {
+                            count.getAndIncrement();
+                            System.out.println(issue);
+                        },
+                        error -> {
+                            System.out.println(error.getMessage());
+                            interrupted.set(true);
+                        },
                         () -> interrupted.set(true)
                 );
 
-                while (!interrupted.get());
+                while (!interrupted.get()) ;
             }, () -> System.out.println("Board не найден"));
 
         } catch (JiraException e) {

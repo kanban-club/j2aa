@@ -9,3 +9,5 @@ output-file = csv/output.csv
 jira-fields = issuetype, labels
 
 #use-max-column = false
+#javax.net.ssl.trustStore =
+#javax.net.ssl.trustStorePassword =

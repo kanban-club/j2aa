@@ -14,7 +14,7 @@
     <groupId>club.kanban</groupId>
     <artifactId>j2aa</artifactId>
     <packaging>jar</packaging>
-    <version>1.8.0</version>
+    <version>1.8.1</version>
     <name>J2aa App</name>
     <description>Jira to actionableagile.com</description>
 

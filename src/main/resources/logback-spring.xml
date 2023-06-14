@@ -7,10 +7,10 @@
 
     <appender name="UI" class="club.kanban.j2aa.uilogger.UILogger"/>
 
-    <logger name="jdbc" level="OFF" />
+    <logger name="jdbc" level="OFF"/>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
-        <appender-ref ref="UI" />
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="UI"/>
     </root>
 </configuration>

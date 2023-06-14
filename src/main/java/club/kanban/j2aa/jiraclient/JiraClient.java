@@ -25,8 +25,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.net.ssl.SSLHandshakeException;
-import java.net.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -49,12 +49,12 @@ public class JiraClient implements AutoCloseable {
     @Getter
     private final String sessionId;
 
-    private static String getServerAddress(URI uri) {
-        String serverAddress = null;
-        if (uri.getPort() == -1)
-            serverAddress = String.format("%s://%s", uri.getScheme(), uri.getHost());
+    private static String getServerAddress(URL url) {
+        String serverAddress;
+        if (url.getPort() == -1)
+            serverAddress = String.format("%s://%s", url.getProtocol(), url.getHost());
         else
-            serverAddress = String.format("%s://%s:%d", uri.getScheme(), uri.getHost(), uri.getPort());
+            serverAddress = String.format("%s://%s:%d", url.getProtocol(), url.getHost(), url.getPort());
 
         return serverAddress;
     }
@@ -66,14 +66,14 @@ public class JiraClient implements AutoCloseable {
         return WebClient.builder().exchangeStrategies(strategies).build();
     }
 
-    public static JiraClient connectTo(String jiraUrl, String username, String password) throws URISyntaxException {
+    public static JiraClient connectTo(String jiraUrl, String username, String password) {
         return connectTo(jiraUrl, username, password, getDefaultWebClient());
     }
 
-    private static JiraClient connectTo(String jiraUrl, String username, String password, WebClient webClient) throws URISyntaxException {
-        var _jiraUrl = getServerAddress(new URI(jiraUrl));
-
+    private static JiraClient connectTo(String jiraUrl, String username, String password, WebClient webClient) {
         try {
+            var _jiraUrl = getServerAddress(new URL(jiraUrl));
+
             AuthResponse authResponse = webClient.post()
                     .uri(_jiraUrl, uriBuilder -> uriBuilder.path(AUTH_RESOURCE_URI).build())
                     .accept(MediaType.APPLICATION_JSON)
@@ -88,9 +88,11 @@ public class JiraClient implements AutoCloseable {
             throw new JiraException(e.getCause());
         } catch (WebClientResponseException.Unauthorized e) {
             throw new JiraException(
-                    String.format("Неизвестное имя пользователя или пароль (Пользователь '%s', Хост '%s').", username, _jiraUrl), e);
+                    String.format("Неизвестное имя пользователя или пароль (Пользователь '%s').", username), e);
         } catch (IllegalArgumentException | NoSuchElementException e) {
             throw new JiraException("Неизвестный ответ от сервера при авторизации."); //TODO не протестировано
+        } catch (MalformedURLException e) {
+            throw new JiraException(String.format("Неверный формат адреса сервера '%s'", jiraUrl), e);
         }
     }
 
@@ -139,7 +141,7 @@ public class JiraClient implements AutoCloseable {
     }
 
     public Optional<Board> getBoard(long id) {
-        return get(Board.class,  String.format(BOARD_URI_TEMPLATE, id));
+        return get(Board.class, String.format(BOARD_URI_TEMPLATE, id));
     }
 
     public Optional<BoardConfig> getBoardConfig(long id) {
@@ -188,13 +190,17 @@ public class JiraClient implements AutoCloseable {
 
     // TODO experimental
     public Mono<List<Issue>> getBoardIssuesMono(Board board,
-                                            String jqlSubFilter,
-                                            List<String> jiraFields) {
+                                                String jqlSubFilter,
+                                                List<String> jiraFields) {
 
         return getBoardIssuesPage(board, jqlSubFilter, jiraFields, 0, BoardIssuesPage.DEFAULT_MAX_RESULTS)
                 .expand(page -> {
                     if (page.hasNextPage())
-                        return getBoardIssuesPage(board, jqlSubFilter, jiraFields, page.nextPageStartAt(), BoardIssuesPage.DEFAULT_MAX_RESULTS);
+                        return getBoardIssuesPage(board,
+                                jqlSubFilter,
+                                jiraFields,
+                                page.nextPageStartAt(),
+                                BoardIssuesPage.DEFAULT_MAX_RESULTS);
                     else
                         return Mono.empty();
                 })
@@ -208,7 +214,10 @@ public class JiraClient implements AutoCloseable {
         return getBoardIssuesPage(board, jqlSubFilter, jiraFields, 0, BoardIssuesPage.DEFAULT_MAX_RESULTS)
                 .expand(page -> {
                     if (page.hasNextPage())
-                        return getBoardIssuesPage(board, jqlSubFilter, jiraFields, page.nextPageStartAt(), BoardIssuesPage.DEFAULT_MAX_RESULTS);
+                        return getBoardIssuesPage(board,
+                                jqlSubFilter, jiraFields,
+                                page.nextPageStartAt(),
+                                BoardIssuesPage.DEFAULT_MAX_RESULTS);
                     else
                         return Mono.empty();
                 })

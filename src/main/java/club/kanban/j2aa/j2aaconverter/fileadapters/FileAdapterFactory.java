@@ -11,7 +11,8 @@ import java.util.Map;
 @Component
 public class FileAdapterFactory {
     private final List<Exportable> adapters;
-    @Getter private final CsvAdapter defaultAdapter;
+    @Getter
+    private final CsvAdapter defaultAdapter;
 
     @Autowired
     private FileAdapterFactory(List<Exportable> adapters, CsvAdapter defaultAdapter) {

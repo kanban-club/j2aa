@@ -71,9 +71,9 @@ public class ConnectionProfile {
 
         if (this.getBoardAddress() == null || this.getBoardAddress().trim().equals(""))
             throw new InvalidPropertiesFormatException(String.format(
-                            "Не заполнены обязательные поля %s",
-                            (this.getBoardAddress() == null || this.getBoardAddress().trim().equals("") ?
-                                    " " + KEY_BOARD_URL : "")));
+                    "Не заполнены обязательные поля %s",
+                    (this.getBoardAddress() == null || this.getBoardAddress().trim().equals("") ?
+                            " " + KEY_BOARD_URL : "")));
         this.file = file;
     }
 

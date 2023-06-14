@@ -18,6 +18,7 @@ import org.springframework.context.annotation.*;
 public class J2aaConfig implements ApplicationContextAware {
     @Getter
     private static ApplicationContext context;
+
     @Override
     public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
         context = applicationContext;

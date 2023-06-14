@@ -30,11 +30,11 @@ public class Fields {
     Person reporter;
     Epic epic;
 
-    public List<String> getLabels () {
+    public List<String> getLabels() {
         return labels != null ? Collections.unmodifiableList(labels) : Collections.emptyList();
     }
 
-    public List<Resource> getFixVersions () {
+    public List<Resource> getFixVersions() {
         return fixVersions != null ? Collections.unmodifiableList(fixVersions) : Collections.emptyList();
     }
 }

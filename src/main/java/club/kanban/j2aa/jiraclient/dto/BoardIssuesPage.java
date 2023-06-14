@@ -1,7 +1,6 @@
 package club.kanban.j2aa.jiraclient.dto;
 
 import club.kanban.j2aa.jiraclient.dto.issue.Issue;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -26,9 +25,11 @@ public class BoardIssuesPage {
 //        return startAt + issues.size();
         return startAt + maxResults;
     }
+
     public boolean hasNextPage() {
         return nextPageStartAt() < getTotal();
     }
+
     public List<Issue> getIssues() {
         return issues != null ? Collections.unmodifiableList(issues) : Collections.emptyList();
     }

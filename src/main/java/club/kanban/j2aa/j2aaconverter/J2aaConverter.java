@@ -11,7 +11,6 @@ import club.kanban.j2aa.jiraclient.dto.BoardIssuesPage;
 import club.kanban.j2aa.jiraclient.dto.boardconfig.BoardConfig;
 import club.kanban.j2aa.jiraclient.dto.issue.Issue;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -22,8 +21,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -49,11 +46,11 @@ public class J2aaConverter {
     @Setter
     private List<ConvertedIssue> convertedIssues;
 
-    private static long getBoardId(URI uri) {
-        Objects.requireNonNull(uri);
+    private static long getBoardId(URL url) {
+        Objects.requireNonNull(url);
 
         String strBoardId = null;
-        String query = uri.getQuery();
+        String query = url.getQuery();
         if (query != null && !query.trim().isEmpty()) {
             String[] tokens = query.split("&");
             for (String token : tokens) {
@@ -71,17 +68,17 @@ public class J2aaConverter {
             boardId = Long.parseLong(Objects.requireNonNull(strBoardId));
         } catch (Exception e) {
             throw new JiraException(
-                    String.format("Адрес (%s) не содержит ссылки на доску (параметр rapidView)", uri));
+                    String.format("Адрес (%s) не содержит ссылки на доску (параметр rapidView)", url));
         }
 
         return boardId;
     }
 
-    public void importFromJira() throws URISyntaxException {
+    public void importFromJira() throws MalformedURLException {
         convertedIssues = null;
 
-        URI boardUri = new URI(profile.getBoardAddress());
-        long boardId = getBoardId(boardUri);
+        URL boardUrl = new URL(profile.getBoardAddress());
+        long boardId = getBoardId(boardUrl);
 
         logger.info(String.format("Подключаемся к серверу: %s", jiraClient.getJiraUrl()));
 
@@ -118,7 +115,8 @@ public class J2aaConverter {
             assert page != null;
             if (page.getTotal() > MAX_ALLOWED_ISSUES) {
                 throw new JiraException(
-                        String.format("Число задач в выгрузке (%d) больше, чем максимально допустимое (%d).\nПопробуйте уточнить период или параметры в Доп.JQL фильтре.",
+                        String.format("Число задач в выгрузке (%d) больше, чем максимально допустимое (%d).\n"
+                                        + "Попробуйте уточнить период или параметры в Доп.JQL фильтре.",
                                 page.getTotal(), MAX_ALLOWED_ISSUES));
             }
 
@@ -146,8 +144,9 @@ public class J2aaConverter {
     public void export2File() throws IOException {
         File outputFile = new File(profile.getOutputFileName());
 
-        if (outputFile.getParentFile() != null)
+        if (outputFile.getParentFile() != null) {
             Files.createDirectories(outputFile.getParentFile().toPath());
+        }
 
         try (OutputStreamWriter writer = new OutputStreamWriter(
                 new FileOutputStream(outputFile.getAbsoluteFile()), StandardCharsets.UTF_8)) {
@@ -172,7 +171,7 @@ public class J2aaConverter {
 
     }
 
-    public void doConversion() throws InterruptedException, IOException, URISyntaxException {
+    public void doConversion() throws IOException {
 
         Date startDate = new Date();
 

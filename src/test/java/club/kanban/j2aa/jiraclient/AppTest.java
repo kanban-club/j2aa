@@ -5,7 +5,6 @@ import club.kanban.j2aa.jiraclient.dto.BoardIssuesPage;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.net.URISyntaxException;
 import java.util.Arrays;
 
 public class AppTest {

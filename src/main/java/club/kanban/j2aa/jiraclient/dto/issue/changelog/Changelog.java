@@ -19,6 +19,7 @@ public class Changelog {
     int maxResults;
     int total;
     List<History> histories;
+
     public List<History> getHistories() {
         return histories != null ? Collections.unmodifiableList(histories) : Collections.emptyList();
     }

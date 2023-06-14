@@ -203,7 +203,7 @@ public class ConvertedIssue {
                 }
             } else {
                 logger.info(String.format("%s: статус '%s' не привязан ни к одному из столбцов на доске",
-                                issue.getKey(), issueStatus.getName()));
+                        issue.getKey(), issueStatus.getName()));
             }
         }
 
