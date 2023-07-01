@@ -56,7 +56,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
-    private static final LocalDate expires = LocalDate.of(2023, 7, 02);
+    private static final LocalDate expires = LocalDate.of(2023, 7, 23);
 
     @Getter
     private final JFrame appFrame;
@@ -388,8 +388,8 @@ public class J2aaApp extends JFrame implements UILogInterface {
             } else {
                 logger.info(e.getMessage());
             }
-        } catch (MalformedURLException e) {
-            logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
+//        } catch (MalformedURLException e) {
+//            logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
 //        } catch (InterruptedException e) {
 //            logger.info("Конвертация прервана"); //TODO not tested
         } catch (Exception e) {

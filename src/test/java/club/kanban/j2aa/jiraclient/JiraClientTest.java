@@ -104,20 +104,31 @@ class JiraClientTest {
         jiraClient = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
     }
 
-    @Test @Disabled
+    @Test
     void connectTo() {
         var client = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
         assertNotNull(client);
         assertEquals(SESSION_ID, client.getSessionId());
         assertEquals(jiraUrl, client.getJiraUrl());
 
+        //Проверяем неверный формат адреса сервера
+        Throwable exception = assertThrows(JiraException.class,
+                () -> JiraClient.connectTo("unknown-server", USERNAME, PASSWORD));
+        assertEquals(java.net.MalformedURLException.class, exception.getCause().getClass());
+
         //Проверяем неверный адрес сервера
-        Throwable exception = assertThrows(JiraException.class, () -> JiraClient.connectTo("unknown-server", USERNAME, PASSWORD));
+        exception = assertThrows(JiraException.class,
+                () -> JiraClient.connectTo("https://unknown-server.ru", USERNAME, PASSWORD));
         assertEquals(UnknownHostException.class, exception.getCause().getClass());
 
         //Проверяем неверное имя пользователя или пароль
-        assertThrows(WebClientResponseException.Unauthorized.class, () -> JiraClient.connectTo(jiraUrl, "", PASSWORD));
-        assertThrows(WebClientResponseException.Unauthorized.class, () -> JiraClient.connectTo(jiraUrl, USERNAME, ""));
+        exception = assertThrows(JiraException.class,
+                () -> JiraClient.connectTo(jiraUrl, "", PASSWORD));
+        assertEquals(WebClientResponseException.Unauthorized.class, exception.getCause().getClass());
+
+        exception = assertThrows(JiraException.class,
+                () -> JiraClient.connectTo(jiraUrl, USERNAME, ""));
+        assertEquals(WebClientResponseException.Unauthorized.class, exception.getCause().getClass());
     }
 
     @Test
