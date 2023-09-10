@@ -54,11 +54,26 @@ public class ConvertedIssue {
 
         convertedIssue.key = issue.getKey();
         convertedIssue.name = "";
+
         convertedIssue.link = "";
         try {
             URL restApiUrl = new URL(issue.getSelf());
-            convertedIssue.link = restApiUrl.getProtocol() + "://" + restApiUrl.getHost() +
-                    (restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()) + "/browse/" + issue.getKey();
+            String pathPrefix;
+            int startPos = restApiUrl.getPath().indexOf("/rest/agile");
+            if (startPos > 0) {
+                pathPrefix = restApiUrl.getPath().substring(0, startPos);
+            } else {
+                pathPrefix = "";
+            }
+            convertedIssue.link = new StringBuffer()
+                    .append(restApiUrl.getProtocol())
+                    .append("://")
+                    .append(restApiUrl.getHost())
+                    .append((restApiUrl.getPort() == -1 ? "" : restApiUrl.getPort()))
+                    .append(pathPrefix)
+                    .append("/browse/")
+                    .append(issue.getKey())
+                    .toString();
         } catch (MalformedURLException ignored) {
         }
 
@@ -274,20 +289,20 @@ public class ConvertedIssue {
 
         for (ChangeLogItem fc : flaggedChanges) {
 
-                if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                    if (startOfBlockedTimePeriod == null) {
-                        startOfBlockedTimePeriod = fc.getDate();
-                    }
-                } else if (fc.getFromString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                    if (startOfBlockedTimePeriod != null) {
-                        blockedDays += getDaysBetween(startOfBlockedTimePeriod, fc.getDate());
-                        startOfBlockedTimePeriod = null;
-                    } else {
-                        logger.info(String.format("%s: ошибка в данных по блокировкам. "
-                                + "Снят флаг на незаблокированной задаче", getKey()));
-//                        startOfBlockedTimePeriod = startWFDate;
-                    }
+            if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
+                if (startOfBlockedTimePeriod == null) {
+                    startOfBlockedTimePeriod = fc.getDate();
                 }
+            } else if (fc.getFromString().equals("Impediment" /*or getTo() = [10000] ? */)) {
+                if (startOfBlockedTimePeriod != null) {
+                    blockedDays += getDaysBetween(startOfBlockedTimePeriod, fc.getDate());
+                    startOfBlockedTimePeriod = null;
+                } else {
+                    logger.info(String.format("%s: ошибка в данных по блокировкам. "
+                            + "Снят флаг на незаблокированной задаче", getKey()));
+//                        startOfBlockedTimePeriod = startWFDate;
+                }
+            }
 
             blocked = startOfBlockedTimePeriod != null;
             if (blocked) {

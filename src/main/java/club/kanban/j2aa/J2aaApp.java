@@ -53,7 +53,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
-    private static final LocalDate expires = LocalDate.of(2023, 8, 31);
+    private static final LocalDate expires = LocalDate.of(2023, 12, 31);
 
     @Getter
     private final JFrame appFrame;
