@@ -84,6 +84,10 @@ public class J2aaApp extends JFrame implements UILogInterface {
     @Value("${javax.net.ssl.trustStorePassword:}")
     private String trustStorePassword;
 
+    @Getter
+    @Value("${javax.net.ssl.trustStoreType:}")
+    private String trustStoreType;
+
     private JPanel rootPanel;
     private JTextField fBoardURL;
     private JButton startButton;

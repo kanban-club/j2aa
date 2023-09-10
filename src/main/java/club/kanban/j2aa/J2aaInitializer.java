@@ -61,6 +61,9 @@ public class J2aaInitializer implements ApplicationRunner {
         if (!app.getTrustStorePassword().isEmpty()) {
             System.setProperty("javax.net.ssl.trustStorePassword", app.getTrustStorePassword());
         }
+        if (!app.getTrustStoreType().isEmpty()) {
+            System.setProperty("javax.net.ssl.trustStoreType", app.getTrustStoreType());
+        }
     }
 }
 

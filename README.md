@@ -46,3 +46,5 @@ ${user.home}/.j2aa
 или обратный (/)
 
 **javax.net.ssl.trustStorePassword** = пароль к файлу с доверенными сертификатами
+
+**javax.net.ssl.trustStoreType** = (optional) тип хранилища доверенных сертификатов (например Windows-ROOT, JKS etc)

@@ -12,4 +12,5 @@ jira-fields = issuetype, labels
 #export-blockers-calendar = false
 #javax.net.ssl.trustStore =
 #javax.net.ssl.trustStorePassword =
+javax.net.ssl.trustStoreType = Windows-ROOT
 #url-path-prefix =
