@@ -17,9 +17,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,7 +35,7 @@ class JiraClientTest {
 
     private static MockWebServer server;
     private JiraClient jiraClient;
-    private String jiraUrl;
+    private URL jiraUrl;
 
     private static String BOARD_JSON_STUB;
     private static String BOARD_CONFIGURATION_JSON_STUB;
@@ -60,7 +58,7 @@ class JiraClientTest {
         final Dispatcher dispatcher = new Dispatcher() {
 
             @Override
-            public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+            public MockResponse dispatch(RecordedRequest request) {
                 try {
                     URI uri = new URI(request.getPath());
                     switch (Objects.requireNonNull(uri.getPath())) {
@@ -79,7 +77,10 @@ class JiraClientTest {
                                 } catch (Exception e) {
                                     return new MockResponse().setResponseCode(401);
                                 }
-                                return new MockResponse().setResponseCode(200).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON).setBody(String.format("{ \"session\": {\"name\": \"JSESSIONID\", \"value\": \"%s\"}}", SESSION_ID));
+                                return new MockResponse()
+                                        .setResponseCode(200)
+                                        .setHeader(HttpHeaders.SET_COOKIE, new HttpCookie("JSESSIONID", SESSION_ID))
+                                        .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON).setBody(String.format("{ \"session\": {\"name\": \"JSESSIONID\", \"value\": \"%s\"}}", SESSION_ID));
                             } else if (request.getMethod().equals("DELETE"))
                                 return new MockResponse().setResponseCode(204);
                     }
@@ -99,40 +100,35 @@ class JiraClientTest {
     }
 
     @BeforeEach
-    void setUp() {
-        jiraUrl = String.format("http://localhost:%d", server.getPort());
-        jiraClient = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
+    void setUp() throws MalformedURLException {
+        jiraUrl = new URL(String.format("http://localhost:%d", server.getPort()));
+        jiraClient = JiraClient.builder(jiraUrl, USERNAME, PASSWORD).build();
     }
 
     @Test
     void connectTo() {
-        var client = JiraClient.connectTo(jiraUrl, USERNAME, PASSWORD);
+        var client = JiraClient.builder(jiraUrl, USERNAME, PASSWORD).build();
         assertNotNull(client);
         assertEquals(SESSION_ID, client.getSessionId());
-        assertEquals(jiraUrl, client.getJiraUrl());
-
-        //Проверяем неверный формат адреса сервера
-        Throwable exception = assertThrows(JiraException.class,
-                () -> JiraClient.connectTo("unknown-server", USERNAME, PASSWORD));
-        assertEquals(java.net.MalformedURLException.class, exception.getCause().getClass());
+        assertEquals(jiraUrl, client.getServerUrl());
 
         //Проверяем неверный адрес сервера
-        exception = assertThrows(JiraException.class,
-                () -> JiraClient.connectTo("https://unknown-server.ru", USERNAME, PASSWORD));
+        Throwable exception = assertThrows(JiraException.class,
+                () -> JiraClient.builder(new URL("https://unknown-server.ru"), USERNAME, PASSWORD).build());
         assertEquals(UnknownHostException.class, exception.getCause().getClass());
 
         //Проверяем неверное имя пользователя или пароль
         exception = assertThrows(JiraException.class,
-                () -> JiraClient.connectTo(jiraUrl, "", PASSWORD));
+                () -> JiraClient.builder(jiraUrl, "", PASSWORD).build());
         assertEquals(WebClientResponseException.Unauthorized.class, exception.getCause().getClass());
 
         exception = assertThrows(JiraException.class,
-                () -> JiraClient.connectTo(jiraUrl, USERNAME, ""));
+                () -> JiraClient.builder(jiraUrl, USERNAME, "").build());
         assertEquals(WebClientResponseException.Unauthorized.class, exception.getCause().getClass());
     }
 
     @Test
-    void close() throws Exception {
+    void close() {
 //        System.out.println("Установленная сессия (SessionID): " + jiraClient.getSessionId());
 //        Board board = jiraClient.getBoard(BOARD_ID).get();
 //        System.out.println("Название доски: " + board.getName());

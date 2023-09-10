@@ -45,6 +45,7 @@ public class ConvertedIssue {
     @Getter
     private J2aaConverter converter;
     private final List<ChangeLogItem> statusChanges = new ArrayList<>(10);
+    @Getter
     private final List<ChangeLogItem> flaggedChanges = new ArrayList<>(10);
 
     public static ConvertedIssue newInstance(J2aaConverter converter, Issue issue) throws JiraException {
@@ -65,7 +66,7 @@ public class ConvertedIssue {
         convertedIssue.attributes = new LinkedHashMap<>();
         Fields fields
                 = issue.getFields();
-        for (String jiraField : converter.getProfile().getJiraFields()) {
+        for (String jiraField : converter.getJiraFields()) {
             switch (jiraField) {
                 case "projectkey":
                     convertedIssue.attributes.put("Project Key",
@@ -119,7 +120,7 @@ public class ConvertedIssue {
             }
         }
 
-        convertedIssue.initTransitionsLog(issue, converter.getBoardConfig(), converter.getProfile().isUseMaxColumn());
+        convertedIssue.initTransitionsLog(issue, converter.getBoardConfig(), converter.isUseMaxColumn());
         convertedIssue.initBlockedDays();
 
         if (convertedIssue.isBlockedInDone()) {
@@ -163,7 +164,9 @@ public class ConvertedIssue {
                 IssueStatus prevIssueStatus = issueStatuses.get(issueStatuses.size() - 1);
                 if (prevIssueStatus.getStatusId() == changeLogItem.getFrom())
                     prevIssueStatus.setDateOut(changeLogItem.getDate());
-                else throw new JiraException("Inconsistent statuses");
+                else {
+                    throw new JiraException("Inconsistent statuses");
+                }
             }
 
             IssueStatus newIssueStatus = new IssueStatus(
@@ -267,29 +270,28 @@ public class ConvertedIssue {
 
         blockedDays = (long) 0;
 
-        if (statusChanges.size() > 0) {
-            Date startWFDate = statusChanges.get(0).getDate();
-            Date endWFDate = statusChanges.get(statusChanges.size() - 1).getDate();
+        Date startOfBlockedTimePeriod = null;
 
-            Date startOfBlockedTimePeriod = null;
+        for (ChangeLogItem fc : flaggedChanges) {
 
-            for (ChangeLogItem fc : flaggedChanges) {
-                if (fc.getDate().compareTo(startWFDate) >= 0 && fc.getDate().compareTo(endWFDate) <= 0) {
-                    if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                        if (startOfBlockedTimePeriod == null)
-                            startOfBlockedTimePeriod = fc.getDate();
-                    } else if (fc.getFromString().equals("Impediment" /*or getTo() = [10000] ? */)) {
-                        if (startOfBlockedTimePeriod == null)
-                            startOfBlockedTimePeriod = startWFDate;
+                if (fc.getToString().equals("Impediment" /*or getTo() = [10000] ? */)) {
+                    if (startOfBlockedTimePeriod == null) {
+                        startOfBlockedTimePeriod = fc.getDate();
+                    }
+                } else if (fc.getFromString().equals("Impediment" /*or getTo() = [10000] ? */)) {
+                    if (startOfBlockedTimePeriod != null) {
                         blockedDays += getDaysBetween(startOfBlockedTimePeriod, fc.getDate());
                         startOfBlockedTimePeriod = null;
+                    } else {
+                        logger.info(String.format("%s: ошибка в данных по блокировкам. "
+                                + "Снят флаг на незаблокированной задаче", getKey()));
+//                        startOfBlockedTimePeriod = startWFDate;
                     }
                 }
-            }
 
             blocked = startOfBlockedTimePeriod != null;
             if (blocked) {
-                blockedDays += getDaysBetween(startOfBlockedTimePeriod, endWFDate);
+                blockedDays += getDaysBetween(startOfBlockedTimePeriod, new Date());
             }
         }
     }
@@ -300,10 +302,10 @@ public class ConvertedIssue {
                 for (HistoryItem item : history.getHistoryItems()) {
                     switch (item.getField()) {
                         case "status":
-                            statusChanges.add(ChangeLogItem.get(history, item, 0));
+                            statusChanges.add(ChangeLogItem.of(history, item, 0));
                             break;
                         case "Flagged":
-                            flaggedChanges.add(ChangeLogItem.get(history, item,
+                            flaggedChanges.add(ChangeLogItem.of(history, item,
                                     ChangeLogItem.SKIP_FROM | ChangeLogItem.SKIP_TO));
                             break;
                     }

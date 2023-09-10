@@ -23,6 +23,8 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.FontUIResource;
+import javax.swing.text.StyleContext;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -36,15 +38,10 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JOptionPane.*;
@@ -56,7 +53,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private static final String DEFAULT_APP_TITLE = "Jira to ActionableAgile converter";
     private static final String DEFAULT_CONNECTION_PROFILE_FORMAT = "xml";
     private static final String KEY_VERSION = "version";
-    private static final LocalDate expires = LocalDate.of(2023, 7, 23);
+    private static final LocalDate expires = LocalDate.of(2023, 8, 31);
 
     @Getter
     private final JFrame appFrame;
@@ -101,6 +98,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
     private JLabel labelBoardUrl;
     private JTextField fJiraFields;
     private JLabel labelsJiraFields;
+    private JCheckBox fExportBlockersCalendar;
 
     private volatile Thread conversionThread;
 
@@ -174,6 +172,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
             int returnVal = chooser.showOpenDialog(getAppFrame());
             if (returnVal == APPROVE_OPTION) {
                 try {
+                    getData(this);
                     connectionProfile.readConnProfile(chooser.getSelectedFile());
                     setData(this);
                     setAppTitle();
@@ -311,6 +310,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         fOutputFileName.setText(data.connectionProfile.getOutputFileName());
         fJQLSubFilter.setText(data.connectionProfile.getJqlSubFilter());
         fJiraFields.setText(String.join(", ", data.connectionProfile.getJiraFields()));
+        fExportBlockersCalendar.setSelected(data.connectionProfile.isExportBlockersCalendar());
     }
 
     /**
@@ -326,6 +326,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         data.connectionProfile.setOutputFileName(fOutputFileName.getText());
         data.connectionProfile.setJqlSubFilter(fJQLSubFilter.getText());
         data.connectionProfile.setJiraFields(fJiraFields.getText().split("\\s*,\\s*"));
+        data.connectionProfile.setExportBlockersCalendar(fExportBlockersCalendar.isSelected());
     }
 
     private void doConversion() {
@@ -350,16 +351,6 @@ public class J2aaApp extends JFrame implements UILogInterface {
             return;
         }
 
-        //TODO
-        // Проверяем наличие выходного файла на диске
-//        File outputFile = new File(connectionProfile.getOutputFileName());
-//        if (outputFile.exists() && showConfirmDialog(getAppFrame(),
-//                String.format("Файл %s существует. Перезаписать?", outputFile.getAbsoluteFile()),
-//                "Подтверждение", YES_NO_OPTION) != YES_OPTION) {
-//            showMessageDialog(getAppFrame(), "Конвертация остановлена", "Информация", INFORMATION_MESSAGE);
-//            return;
-//        }
-
         File outputFile = new File(connectionProfile.getOutputFileName());
         if (outputFile.exists()) {
             try {
@@ -368,16 +359,50 @@ public class J2aaApp extends JFrame implements UILogInterface {
             }
         }
 
+        URL boardUrl;
+        try {
+            boardUrl = new URL(connectionProfile.getBoardAddress());
+        } catch (MalformedURLException e) {
+            logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
+            return;
+        }
+
         fLog.setText(null);
         enableControls(false);
 
         // Подключаемся к доске и конвертируем данные
-        try (JiraClient jiraClient =
-                     JiraClient.connectTo(connectionProfile.getBoardAddress(), getUserName(), getPassword())) {
+        try (JiraClient jiraClient = JiraClient
+                .builder(boardUrl, getUserName(), getPassword())
+                .withUrlPathPrefix(connectionProfile.getUrlPathPrefix())
+                .build()
+        ) {
             logger.info(String.format("Пользователь %s", getUserName()));
-            J2aaConverter converter = new J2aaConverter(jiraClient, connectionProfile);
-            converter.doConversion();
-        } catch (JiraException e) {
+
+            J2aaConverter converter = J2aaConverter.builder(jiraClient, boardUrl)
+                    .withJiraFields(Arrays.asList(connectionProfile.getJiraFields()))
+                    .withJqlSubFilter(connectionProfile.getJqlSubFilter())
+                    .withUseMaxColumn(connectionProfile.isUseMaxColumn())
+                    .build();
+
+            LocalDateTime startDate = LocalDateTime.now();
+            if (converter.fetchData() > 0) {
+                LocalDateTime endDate = LocalDateTime.now();
+                long timeInSec = Duration.between(startDate, endDate).getSeconds();
+                logger.info(String.format(
+                        "Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек",
+                        converter.getConvertedIssues().size(),
+                        timeInSec,
+                        (1.0 * converter.getConvertedIssues().size()) / timeInSec));
+                converter.exportIssues(connectionProfile.getOutputFileName());
+
+                if (connectionProfile.isExportBlockersCalendar()) {
+                    converter.exportBlockers(connectionProfile.getOutputFileName());
+                }
+            } else {
+                logger.info("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
+            }
+        } catch (
+                JiraException e) {
             if (e.getCause() instanceof SSLHandshakeException || e.getCause() instanceof SSLPeerUnverifiedException) {
                 logger.info("Ошибка проверки SSL сертификата хоста.\n"
                         + "Попробуйте указать следующие параметры Java VM при запуске программы:\n"
@@ -388,22 +413,21 @@ public class J2aaApp extends JFrame implements UILogInterface {
             } else {
                 logger.info(e.getMessage());
             }
-//        } catch (MalformedURLException e) {
-//            logger.info("Неверный формат адреса\n{}", connectionProfile.getBoardAddress());
-//        } catch (InterruptedException e) {
-//            logger.info("Конвертация прервана"); //TODO not tested
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             if (e.getCause() instanceof InterruptedException) {
                 logger.info("Конвертация прервана.");
             } else {
                 logger.info(e.getMessage());
             }
         }
+
         conversionThread = null;
+
         enableControls(true);
     }
 
-    private boolean archiveFile(File file) throws IOException {
+    private void archiveFile(File file) throws IOException {
         BasicFileAttributes attr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
         LocalDateTime fileDateTime = LocalDateTime.ofInstant(
                 Instant.ofEpochMilli(attr.lastModifiedTime().toMillis()), ZoneId.systemDefault());
@@ -416,7 +440,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
                 + name
                 + fileDateTime.format(formatter) + (!ext.isEmpty() ? "." + ext : "")
         );
-        return file.renameTo(newFile);
+        file.renameTo(newFile);
     }
 
     private void enableControls(boolean state) {
@@ -434,6 +458,7 @@ public class J2aaApp extends JFrame implements UILogInterface {
         fUsername.setEnabled(state);
         fPassword.setEnabled(state);
         fJiraFields.setEnabled(state);
+        fExportBlockersCalendar.setEnabled(state);
     }
 
     public void setAppTitle() {
@@ -468,20 +493,20 @@ public class J2aaApp extends JFrame implements UILogInterface {
      */
     private void $$$setupUI$$$() {
         rootPanel = new JPanel();
-        rootPanel.setLayout(new GridLayoutManager(7, 3, new Insets(0, 0, 0, 10), -1, -1));
+        rootPanel.setLayout(new GridLayoutManager(8, 3, new Insets(0, 0, 0, 10), -1, -1));
         labelBoardUrl = new JLabel();
         labelBoardUrl.setText("Ссылка на доску*");
         rootPanel.add(labelBoardUrl, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fBoardURL = new JTextField();
         rootPanel.add(fBoardURL, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
-        rootPanel.add(scrollPane1, new GridConstraints(6, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        rootPanel.add(scrollPane1, new GridConstraints(7, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         fLog = new JTextArea();
         fLog.setEditable(false);
         scrollPane1.setViewportView(fLog);
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
-        rootPanel.add(panel1, new GridConstraints(6, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        rootPanel.add(panel1, new GridConstraints(7, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         final Spacer spacer1 = new Spacer();
         panel1.add(spacer1, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         startButton = new JButton();
@@ -497,15 +522,15 @@ public class J2aaApp extends JFrame implements UILogInterface {
         selectOutputFileButton.setText("Обзор");
         rootPanel.add(selectOutputFileButton, new GridConstraints(3, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         fPassword = new JPasswordField();
-        rootPanel.add(fPassword, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        rootPanel.add(fPassword, new GridConstraints(6, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label1 = new JLabel();
         label1.setText("Пароль*");
-        rootPanel.add(label1, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        rootPanel.add(label1, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         fUsername = new JTextField();
-        rootPanel.add(fUsername, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        rootPanel.add(fUsername, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label2 = new JLabel();
         label2.setText("Пользователь*");
-        rootPanel.add(label2, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        rootPanel.add(label2, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
         final JLabel label3 = new JLabel();
         label3.setText("Файл для экспорта*");
         rootPanel.add(label3, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
@@ -523,6 +548,33 @@ public class J2aaApp extends JFrame implements UILogInterface {
         labelsJiraFields = new JLabel();
         labelsJiraFields.setText("Поля jira");
         rootPanel.add(labelsJiraFields, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 1, false));
+        fExportBlockersCalendar = new JCheckBox();
+        Font fExportBlockersCalendarFont = this.$$$getFont$$$(null, Font.PLAIN, -1, fExportBlockersCalendar.getFont());
+        if (fExportBlockersCalendarFont != null) fExportBlockersCalendar.setFont(fExportBlockersCalendarFont);
+        fExportBlockersCalendar.setText("выгрузить календарь блокировок");
+        rootPanel.add(fExportBlockersCalendar, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+    }
+
+    /**
+     * @noinspection ALL
+     */
+    private Font $$$getFont$$$(String fontName, int style, int size, Font currentFont) {
+        if (currentFont == null) return null;
+        String resultName;
+        if (fontName == null) {
+            resultName = currentFont.getName();
+        } else {
+            Font testFont = new Font(fontName, Font.PLAIN, 10);
+            if (testFont.canDisplay('a') && testFont.canDisplay('1')) {
+                resultName = fontName;
+            } else {
+                resultName = currentFont.getName();
+            }
+        }
+        Font font = new Font(resultName, style >= 0 ? style : currentFont.getStyle(), size >= 0 ? size : currentFont.getSize());
+        boolean isMac = System.getProperty("os.name", "").toLowerCase(Locale.ENGLISH).startsWith("mac");
+        Font fontWithFallback = isMac ? new Font(font.getFamily(), font.getStyle(), font.getSize()) : new StyleContext().getFont(font.getFamily(), font.getStyle(), font.getSize());
+        return fontWithFallback instanceof FontUIResource ? fontWithFallback : new FontUIResource(fontWithFallback);
     }
 
     /**
@@ -531,5 +583,4 @@ public class J2aaApp extends JFrame implements UILogInterface {
     public JComponent $$$getRootComponent$$$() {
         return rootPanel;
     }
-
 }

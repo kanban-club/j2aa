@@ -20,6 +20,7 @@ public class ConnectionProfile {
     public static final String KEY_OUTPUT_FILE = "output_file_name";
     public static final String KEY_JQL_SUB_FILTER = "jql_sub_filter";
     public static final String KEY_JIRA_FIELDS = "jira_fields";
+    public static final String KEY_EXPORT_BLOCKERS_CALENDAR = "export_blockers_calendar";
 
     @Value("${board-url:}")
     @Getter
@@ -45,6 +46,16 @@ public class ConnectionProfile {
     @Getter
     private boolean useMaxColumn;
 
+    @Value("${export-blockers-calendar:false}")
+    @Getter
+    @Setter
+    private boolean exportBlockersCalendar;
+
+    @Value("${url-path-prefix:}")
+    @Getter
+    @Setter
+    private String urlPathPrefix;
+
     @Getter
     private File file;
 
@@ -68,6 +79,7 @@ public class ConnectionProfile {
         outputFileName = p.getProperty(KEY_OUTPUT_FILE);
         jiraFields = (p.getProperty(KEY_JIRA_FIELDS) != null ?
                 p.getProperty(KEY_JIRA_FIELDS).split("\\s*,\\s*") : new String[0]);
+        exportBlockersCalendar = Boolean.parseBoolean(p.getProperty(KEY_EXPORT_BLOCKERS_CALENDAR));
 
         if (this.getBoardAddress() == null || this.getBoardAddress().trim().equals(""))
             throw new InvalidPropertiesFormatException(String.format(
@@ -91,6 +103,7 @@ public class ConnectionProfile {
         p.setProperty(KEY_OUTPUT_FILE, this.getOutputFileName().trim());
         p.setProperty(KEY_JQL_SUB_FILTER, this.getJqlSubFilter());
         p.setProperty(KEY_JIRA_FIELDS, String.join(",", this.getJiraFields()));
+        p.setProperty(KEY_EXPORT_BLOCKERS_CALENDAR, String.valueOf(this.isExportBlockersCalendar()));
 
         if (FilenameUtils.getExtension(file.getName()).equalsIgnoreCase("xml")) {
             p.storeToXML(fos, null);

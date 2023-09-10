@@ -1,6 +1,5 @@
 package club.kanban.j2aa.j2aaconverter;
 
-import club.kanban.j2aa.ConnectionProfile;
 import club.kanban.j2aa.J2aaConfig;
 import club.kanban.j2aa.j2aaconverter.fileadapters.Exportable;
 import club.kanban.j2aa.j2aaconverter.fileadapters.FileAdapterFactory;
@@ -10,8 +9,8 @@ import club.kanban.j2aa.jiraclient.dto.Board;
 import club.kanban.j2aa.jiraclient.dto.BoardIssuesPage;
 import club.kanban.j2aa.jiraclient.dto.boardconfig.BoardConfig;
 import club.kanban.j2aa.jiraclient.dto.issue.Issue;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,33 +19,50 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class J2aaConverter {
     private static final Logger logger = LoggerFactory.getLogger(J2aaConverter.class);
     private static final int MAX_ALLOWED_ISSUES = 1000;
+    private final static List<String> REQUIRED_HTTP_FIELDS = Arrays.asList("status", "created");
 
     private final JiraClient jiraClient;
+    private final URL boardUrl;
+    private final String jqlSubFilter;
+    @Getter
+    private final List<String> jiraFields;
+    @Getter
+    private final boolean useMaxColumn;
 
     @Getter
-    private final ConnectionProfile profile;
+    private BoardConfig boardConfig;
 
     @Getter
-    private Board board; // TODO доделать
-    @Getter
-    private BoardConfig boardConfig; // TODO доделать
-
-    private final static String[] REQUIRED_HTTP_FIELDS = {"status", "created"};
-
-    @Getter
-    @Setter
     private List<ConvertedIssue> convertedIssues;
 
-    private static long getBoardId(URL url) {
+    @Builder(setterPrefix = "with", builderMethodName = "internalBuilder")
+    public J2aaConverter(JiraClient jiraClient,
+                         URL boardUrl, String jqlSubFilter, List<String> jiraFields, boolean useMaxColumn) {
+        this.jiraClient = jiraClient;
+        this.boardUrl = boardUrl;
+        this.jqlSubFilter = jqlSubFilter;
+        this.jiraFields = jiraFields;
+        this.useMaxColumn = useMaxColumn;
+    }
+
+    public static J2aaConverterBuilder builder(JiraClient jiraClient, URL boardUrl) {
+        Objects.requireNonNull(jiraClient);
+        Objects.requireNonNull(boardUrl);
+        return internalBuilder().withJiraClient(jiraClient).withBoardUrl(boardUrl);
+    }
+
+    private static long getBoardUrl(URL url) {
         Objects.requireNonNull(url);
 
         String strBoardId = null;
@@ -74,43 +90,33 @@ public class J2aaConverter {
         return boardId;
     }
 
-    public void importFromJira() throws MalformedURLException {
+    public int fetchData() {
         convertedIssues = null;
 
-        URL boardUrl = new URL(profile.getBoardAddress());
-        long boardId = getBoardId(boardUrl);
+        logger.info(String.format("Подключаемся к серверу: %s", jiraClient.getServerUrl()));
 
-        logger.info(String.format("Подключаемся к серверу: %s", jiraClient.getJiraUrl()));
-
-        board = jiraClient.getBoard(boardId).orElseThrow(
+        long boardId = getBoardUrl(boardUrl);
+        Board board = jiraClient.getBoard(boardId).orElseThrow(
                 () -> new JiraException(
                         String.format("Доска с id = %d не найдена", boardId)));
         boardConfig = jiraClient.getBoardConfig(boardId).orElseThrow(
                 () -> new JiraException(
                         String.format("Конфигурация доски с id = %d не найдена", boardId)));
 
-        logger.info(String.format("Установлено соединение с доской: %s", board.getName()));
+        logger.info(String.format("Установлено соединение с доской: %s", boardConfig.getName()));
 
         BoardIssuesPage page = null;
         int startAt = 0;
         do {
-//            if (Thread.currentThread().isInterrupted()) {//TODO
-//                throw new InterruptedException();
-//            }
-
             if (page != null) {
                 startAt = page.nextPageStartAt();
             }
 
-            //TODO
-            String[] actualHttpFields = new String[REQUIRED_HTTP_FIELDS.length + profile.getJiraFields().length];
-            System.arraycopy(REQUIRED_HTTP_FIELDS, 0,
-                    actualHttpFields, 0, REQUIRED_HTTP_FIELDS.length);
-            System.arraycopy(profile.getJiraFields(), 0,
-                    actualHttpFields, REQUIRED_HTTP_FIELDS.length, profile.getJiraFields().length);
-
-            page = jiraClient.getBoardIssuesPage(board, profile.getJqlSubFilter(),
-                    Arrays.asList(actualHttpFields), startAt, BoardIssuesPage.DEFAULT_MAX_RESULTS).block();
+            List<String> actualHttpFields = new ArrayList<>(REQUIRED_HTTP_FIELDS.size() + jiraFields.size());
+            actualHttpFields.addAll(REQUIRED_HTTP_FIELDS);
+            actualHttpFields.addAll(jiraFields);
+            page = jiraClient.getBoardIssuesPage(board, jqlSubFilter,
+                    actualHttpFields, startAt, BoardIssuesPage.DEFAULT_MAX_RESULTS).block();
 
             assert page != null;
             if (page.getTotal() > MAX_ALLOWED_ISSUES) {
@@ -139,10 +145,11 @@ public class J2aaConverter {
             logger.info(String.format("%d из %d issues получено", convertedIssues.size(), page.getTotal()));
         } while (page.hasNextPage());
 
+        return convertedIssues.size();
     }
 
-    public void export2File() throws IOException {
-        File outputFile = new File(profile.getOutputFileName());
+    public void exportIssues(String outputFileName) throws IOException {
+        File outputFile = new File(outputFileName);
 
         if (outputFile.getParentFile() != null) {
             Files.createDirectories(outputFile.getParentFile().toPath());
@@ -171,29 +178,74 @@ public class J2aaConverter {
 
     }
 
-    public void doConversion() throws IOException {
+    public void exportBlockers(String outputFileName) throws IOException {
+        Objects.requireNonNull(outputFileName);
+        // Экспортруем календарь блокировок
+        // Формируем данные
+        LocalDate calendarStartDay = LocalDate.from(convertedIssues.stream()
+                .map(issue -> issue.getColumnTransitionsLog()[0])
+                .min(Date::compareTo).orElseThrow().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        LocalDate calendarEndDay = LocalDate.now();
+        Map<String, BlockersCalendar> calendars = new HashMap<>(10);
+        convertedIssues.forEach(issue -> {
+            String issueType = Objects.requireNonNull(issue.getAttributes().get("Issue Type").toString());
+            BlockersCalendar issueTypeCalendar = calendars.get(issueType);
+            if (issueTypeCalendar == null) {
+                issueTypeCalendar = BlockersCalendar.newInstance(calendarStartDay, calendarEndDay);
+                calendars.put(issueType, issueTypeCalendar);
+            }
+//            if (!issue.isBlocked())//TODO удалить
+            issueTypeCalendar.importBlockerChanges(issue.getFlaggedChanges());
+        });
 
-        Date startDate = new Date();
+        String name = FilenameUtils.getBaseName(outputFileName);
+        String path = FilenameUtils.getFullPath(outputFileName);
+//            File blockersFile = new  File(path + name + " Impediments.xls" + (!ext.isEmpty() ? "." + ext : "" ));
+        File blockersFile = new File(path + name + " Impediments.xls");
 
-        importFromJira();
+        //Записываем файл
+        try (OutputStreamWriter writer = new OutputStreamWriter(
+                new FileOutputStream(blockersFile), StandardCharsets.UTF_8)) {
 
-        if (getConvertedIssues().size() > 0) {
-            Date endDate = new Date();
-            long timeInSec = (endDate.getTime() - startDate.getTime()) / 1000;
-            logger.info(String.format("Всего получено: %d issues. Время: %d сек. Скорость: %.2f issues/сек",
-                    getConvertedIssues().size(), timeInSec, (1.0 * getConvertedIssues().size()) / timeInSec));
+            writer.write(
+                    new StringBuilder()
+                            .append("<html>\n<head>\n<meta charset=\"utf-8\">\n<title>Impediments</title>\n</head>\n")
+                            .append("<body>\n<table border=1 align=\"center\" cellpadding=\"4\" cellspacing=\"0\">\n<tr>")
+                            .append("<td bgcolor=\"#CCCCFF\"><b>Date</b></td><td bgcolor=\"#CCCCFF\"><b>Sum</td>")
+                            .append((calendars.keySet().size() > 0 ? "<td bgcolor=\"#CCCCFF\"><b>" : ""))
+                            .append(String.join("</b></td><td bgcolor=\"#CCCCFF\"><b>", calendars.keySet()))
+                            .append((calendars.keySet().size() > 0 ? "</b></td>" : ""))
+                            .append("</tr>\n")
+                            .toString()
+            );
 
-            // экспортируем данные в файл
-            export2File();
-        } else
-            logger.info("Не найдены элементы для выгрузки, соответствующие заданным критериям.");
-    }
+            LocalDate calendarDate = calendarStartDay;
+            while (calendarDate.isBefore(calendarEndDay) || calendarDate.equals(calendarEndDay)) {
+                int sum = 0;
+                List<String> values = new ArrayList<>(calendars.keySet().size());
+                for (String key : calendars.keySet()) {
+                    int value = calendars.get(key).getValue(calendarDate);
+                    values.add(String.valueOf(value));
+                    sum += value;
+                }
 
-    public J2aaConverter(JiraClient jiraClient, ConnectionProfile profile) {
-        Objects.requireNonNull(jiraClient);
-        Objects.requireNonNull(profile);
+                writer.write(new StringBuilder("<tr><td>")
+                        .append(calendarDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+                        .append("</td><td>")
+                        .append(sum)
+                        .append("</td>")
+                        .append((values.size() > 0 ? "<td>" : ""))
+                        .append(String.join("</td><td>", values))
+                        .append((values.size() > 0 ? "</td>" : ""))
+                        .append("</tr>\n")
+                        .toString());
 
-        this.jiraClient = jiraClient;
-        this.profile = profile;
+                calendarDate = calendarDate.plusDays(1);
+            }
+
+            writer.write("</table>\n</body>");
+            writer.flush();
+            logger.info(String.format("Блокировки выгружены в файл:\n%s", blockersFile.getAbsoluteFile()));
+        }
     }
 }

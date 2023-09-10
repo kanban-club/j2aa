@@ -24,7 +24,7 @@ public class ChangeLogItem {
     static final long SKIP_FROM_STRING = 0x8;
     static final long SKIP_TO_STRING = 0x10;
 
-    public ChangeLogItem(Date date,
+    private ChangeLogItem(Date date,
                          @Nullable Long from, @Nullable String fromString,
                          @Nullable Long to, @Nullable String toString) {
         this.date = date;
@@ -34,7 +34,7 @@ public class ChangeLogItem {
         this.toString = toString;
     }
 
-    public static ChangeLogItem get(History history, HistoryItem historyItem, long flags) {
+    public static ChangeLogItem of(History history, HistoryItem historyItem, long flags) {
         Date date = history.getCreated();
         Long from = (flags & SKIP_FROM) != 0 ? null : Long.parseLong(historyItem.getFrom());
         String fromString = (flags & SKIP_FROM_STRING) != 0 ? null : historyItem.getFromString();
@@ -42,5 +42,19 @@ public class ChangeLogItem {
         String toString = (flags & SKIP_TO_STRING) != 0 ? null : historyItem.getToString();
 
         return new ChangeLogItem(date, from, fromString, to, toString);
+    }
+
+    /**
+     * Для использования в юнит тестах BlockersCalendar. Отображает смену статуса Impediment
+     * @param date дата установки или снятия флака Impediment
+     * @param setImpediment true если открываем Impediment, false если снимаем
+     * @return эксземпляр ChangeLogItem описывающий поднятие или снятия флага Impediment
+     */
+    public static ChangeLogItem of(Date date, boolean setImpediment) {
+        return new ChangeLogItem(date,
+                null,
+                setImpediment ? null : "Impediment",
+                null,
+                setImpediment ? "Impediment" : null);
     }
 }
